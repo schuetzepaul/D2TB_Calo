@@ -35,16 +35,18 @@ DetectorConstruction::DetectorConstruction()
 fCheckOverlaps(true),
 fWorldSizeXY(0),
 fWorldSizeZ(0),
+fCaloSizeXY(0),
+fCaloThickness(0),
+fCrystalThickness(0),
 fDetectorMessenger(nullptr),
 fVerboseLevel(1),
 fDefaultMaterial(nullptr),
 fWorldLogical(nullptr),
 fCaloLogical(nullptr),
-fLayerLogical(nullptr),
+fCrystalLogical(nullptr),
 fWorldPhysical(nullptr),
 fCaloPhysical(nullptr),
-fLayerPhysical(nullptr),
-fCrystalPV(nullptr),
+fCrystalPhysical(nullptr),
 fROOTFilename(""),
 fStepSize(1*mm)
 {
@@ -65,6 +67,10 @@ void DetectorConstruction::ComputeParameters()
     //World size
     fWorldSizeXY = 1*m;
     fWorldSizeZ  = 1*m;
+
+    fCaloSizeXY = 10*cm;
+    fCaloThickness = 30*cm;
+    fCrystalThickness = fCaloThickness;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -85,20 +91,16 @@ void DetectorConstruction::DefineMaterials()
     // Lead material defined using NIST Manager
     auto nistManager = G4NistManager::Instance();
     nistManager->FindOrBuildMaterial("G4_AIR");
-    nistManager->FindOrBuildMaterial("G4_POLYSTYRENE");
 
     G4double a, z, density, fractionmass;
     G4String name, symbol;
-    G4int nel, natoms;
+    G4int nel;
 
-    a = 55.845*g/mole;
-    G4Element *elFe = new G4Element(name="Iron", symbol="Fe", z=26., a);
+    a = 174.97*g/mole;
+    G4Element *elLu = new G4Element(name="Lutetium", symbol="Lu", z=71., a);
 
-    a = 12.011*g/mole;
-    G4Element *elC = new G4Element(name="Carbon", symbol="C", z=6., a);
-
-    a = 54.938*g/mole;
-    G4Element *elMn = new G4Element(name="Manganese", symbol="Mn", z=25., a);
+    a = 88.91*g/mole;
+    G4Element *elY = new G4Element(name="Yttrium", symbol="Y", z=39., a);
 
     a = 28.09*g/mole;
     G4Element *elSi = new G4Element(name="Silicon", symbol="Si", z=14., a);
@@ -106,48 +108,20 @@ void DetectorConstruction::DefineMaterials()
     a = 16.00*g/mole;
     G4Element *elO = new G4Element(name="Oxygen", symbol="O", z=8., a);
 
-    a = 1.01*g/mole;
-    G4Element *elH = new G4Element(name="Hydrogen", symbol="H", z=1., a);
-
     //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-    // Steel 235
-    density = 7.87*g/cm3;
-    G4Material *Steel235 = new G4Material(name="Steel235", density, nel=3);
-    Steel235->AddElement(elFe, fractionmass = 0.9843);
-    Steel235->AddElement(elC, fractionmass = 0.0017);
-    Steel235->AddElement(elMn, fractionmass = 0.014);
-
-    // Scintillator
-    density = 1.032*g/cm3;
-    G4Material* Polystyrene = new G4Material("Polystyrene", density, nel=2);
-    Polystyrene->AddElement(elC, natoms=8);
-    Polystyrene->AddElement(elH, natoms=8);
-
-    density= 2.200*g/cm3;
-    G4Material *SiO2 = new G4Material("quartz", density, nel=2);
-    SiO2->AddElement(elSi, natoms = 1);
-    SiO2->AddElement(elO , natoms = 2);
-
-    //from http://www.physi.uni-heidelberg.de/~adler/TRD/TRDunterlagen/RadiatonLength/tgc2.htm
-    //Epoxy (for FR4 )
-    density = 1.2*g/cm3;
-    G4Material *Epoxy = new G4Material("Epoxy", density, nel=2);
-    Epoxy->AddElement(elH, natoms = 2);
-    Epoxy->AddElement(elC, natoms = 2);
-
-    //FR4 (Glass + Epoxy)
-    density = 1.86*g/cm3;
-    G4Material *FR4 = new G4Material("FR4", density, nel=2);
-    FR4->AddMaterial(SiO2, fractionmass = 0.528);
-    FR4->AddMaterial(Epoxy, fractionmass = 0.472);
-
-    //Vacuum
-    // G4Material *Vacuum = new G4Material("Galactic", z=1., a=1.01*g/mole, density=universe_mean_density, kStateGas, 2.73*kelvin, 3.e-18*pascal);
+    // LYSO
+    density = 7.36*g/cm3;
+    G4Material *lyso = new G4Material(name="LYSO", density, nel=4);
+    lyso->AddElement(elLu, fractionmass = 0.714467891);
+    lyso->AddElement(elY, fractionmass = 0.04033805);
+    lyso->AddElement(elSi, fractionmass = 0.063714272);
+    lyso->AddElement(elO, fractionmass = 0.181479788);
 
     fDefaultMaterial = G4Material::GetMaterial("G4_AIR");
+    fDefaultCrystalMaterial = G4Material::GetMaterial("LYSO");
 
-    if ( ! fDefaultMaterial ) {
+    if ( not fDefaultMaterial || not fDefaultCrystalMaterial ) {
         G4ExceptionDescription msg;
         msg << "Cannot retrieve materials.";
         G4Exception("DetectorConstruction::DefineMaterials()",
@@ -173,16 +147,33 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
     fWorldPhysical = new G4PVPlacement(0, G4ThreeVector(), fWorldLogical, "World", 0, false, 0, fCheckOverlaps);
 
     //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+    // Calorimeter Box
+    auto caloBox = new G4Box("Calorimeter", fCaloSizeXY/2, fCaloSizeXY/2, fCaloThickness/2);
+    // Calorimeter logical volume
+    fCaloLogical = new G4LogicalVolume(caloBox, fDefaultMaterial, "Calorimeter");
+    // Calorimeter physical volume
+    fCaloPhysical = new G4PVPlacement(0, G4ThreeVector(), fCaloLogical, "Calorimeter", fWorldLogical, false, 0, fCheckOverlaps);
 
     //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+    // Crystal Box
+    auto crystalBox = new G4Box("Crystal", fCaloSizeXY/2, fCaloSizeXY/2, fCrystalThickness/2);
+    // Crystal logical volume
+    fCrystalLogical = new G4LogicalVolume(crystalBox, fDefaultCrystalMaterial, "Crystal");
+    // Crystal physical volume
+    fCrystalPhysical = new G4PVPlacement(0, G4ThreeVector(), fCrystalLogical, "Crystal", fWorldLogical, false, 0, fCheckOverlaps);
 
     // Attach limits to the layer logical volume (G4UserLimits.hh)
     G4UserLimits *limits = new G4UserLimits();
     limits->SetMaxAllowedStep(fStepSize);
-    // fLayerLogical->SetUserLimits(limits);
+    fCrystalLogical->SetUserLimits(limits);
 
     // Visualization attributes
+    // Visualization attributes
     fWorldLogical->SetVisAttributes (G4VisAttributes::GetInvisible());
+
+    auto CrystalVisAtt = new G4VisAttributes(G4Colour(1.0,1.0,1.0));
+    CrystalVisAtt->SetVisibility(true);
+    fCrystalLogical->SetVisAttributes(CrystalVisAtt);
 
     PrintCaloParameters();
 

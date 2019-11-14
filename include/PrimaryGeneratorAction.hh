@@ -7,6 +7,7 @@
 #include "G4VUserPrimaryGeneratorAction.hh"
 #include "globals.hh"
 
+class G4ParticleGun;
 class G4GeneralParticleSource;
 class G4Event;
 
@@ -29,7 +30,8 @@ public:
   void SetRandomFlag(G4bool value);
 
 private:
-  G4GeneralParticleSource*  fParticleGun; // G4 particle gun (GPS)
+  G4ParticleGun*            fG4ParticleGun;  // G4 particle gun
+  G4GeneralParticleSource*  fGPSParticleGun; // G4 GPS particle gun
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

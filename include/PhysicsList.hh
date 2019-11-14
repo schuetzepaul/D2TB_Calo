@@ -16,11 +16,8 @@ class PhysicsList: public G4VModularPhysicsList
 {
 public:
 
-    /// Construct the physics list.  If physName is a valid list, then it will
-    /// be used.  Otherwise, the physics list will be read first from the
-    /// macro file, and then from the PHYSLIST environment variable.  If all
-    /// of thoses methods fail, then a G4 provided default will be used.
-    explicit PhysicsList(G4String physName);
+    /// Construct the physics list.
+    explicit PhysicsList();
 
     virtual ~PhysicsList();
 

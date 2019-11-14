@@ -11,14 +11,12 @@
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
 
-#include "G4PhysListFactory.hh"
-
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 namespace {
     void PrintUsage() {
         G4cerr << " Usage: " << G4endl;
-        G4cerr << " D2TB_Calo [-m macro] [-p physicsList] [-u UIsession] [-h help]" << G4endl;
+        G4cerr << " D2TB_Calo [-m macro] [-u UIsession] [-h help]" << G4endl;
     }
 }
 
@@ -34,12 +32,10 @@ int main(int argc,char** argv)
 
     G4String macro;
     G4String session;
-    G4String phyList;
 
     for ( G4int i=1; i<argc; i=i+2 ) {
         if      ( G4String(argv[i]) == "-m" ) macro = argv[i+1];
         else if ( G4String(argv[i]) == "-u" ) session = argv[i+1];
-        else if ( G4String(argv[i]) == "-p" ) phyList = argv[i+1];
         else if ( G4String(argv[i]) == "-h" ) {
             PrintUsage();
             return 1;
@@ -69,7 +65,7 @@ int main(int argc,char** argv)
     runManager->SetUserInitialization(detConstruction);
 
     // Choice of the physics List
-    runManager->SetUserInitialization(new PhysicsList(phyList));
+    runManager->SetUserInitialization(new PhysicsList());
 
     // ActionInitialisation
     auto actionInitialization = new ActionInitialization(detConstruction);

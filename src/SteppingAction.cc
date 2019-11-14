@@ -31,52 +31,52 @@ void SteppingAction::UserSteppingAction(const G4Step *step) {
   // Collect energy and track length step by step
 
   // get volume of the current step
-  auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
+  // auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
 
-  if (volume == fDetConstruction->GetCrystalPV()) {
-    // energy deposit
-    auto edep = step->GetTotalEnergyDeposit();
-
-    // Skip no deposited energy
-    if (edep <= 0)
-      return;
-
-    // Birks using method provided by G4
-    auto edepBirksG4 = BirksAttenuationG4(step);
-
-    // step length
-    G4double stepLength = 0.;
-    if (step->GetTrack()->GetDefinition()->GetPDGCharge() != 0.) {
-      stepLength = step->GetStepLength();
-    }
-
-    // G4Touchable
-    G4TouchableHandle theTouchable =
-        step->GetPreStepPoint()->GetTouchableHandle();
-
-    // pos
-    auto G4Global = 0.5 * (step->GetPreStepPoint()->GetPosition() +
-                           step->GetPostStepPoint()->GetPosition());
-    // Transform from global coordinates to local coordinates
-    auto G4Local = step->GetPreStepPoint()
-                       ->GetTouchable()
-                       ->GetHistory()
-                       ->GetTopTransform()
-                       .TransformPoint(G4Global);
-
-    // Get the layer number
-    G4double layer = theTouchable->GetReplicaNumber(1);
-
-    // time
-    float time = step->GetPreStepPoint()->GetGlobalTime();
-
-    // process name
-    const G4VProcess *process =
-        step->GetPostStepPoint()->GetProcessDefinedStep();
-    auto processName = process->GetProcessName();
-    auto processSubType = process->GetProcessSubType();
-
-  }
+  // if (volume == "") {
+  //   // energy deposit
+  //   auto edep = step->GetTotalEnergyDeposit();
+  //
+  //   // Skip no deposited energy
+  //   if (edep <= 0)
+  //     return;
+  //
+  //   // Birks using method provided by G4
+  //   auto edepBirksG4 = BirksAttenuationG4(step);
+  //
+  //   // step length
+  //   G4double stepLength = 0.;
+  //   if (step->GetTrack()->GetDefinition()->GetPDGCharge() != 0.) {
+  //     stepLength = step->GetStepLength();
+  //   }
+  //
+  //   // G4Touchable
+  //   G4TouchableHandle theTouchable =
+  //       step->GetPreStepPoint()->GetTouchableHandle();
+  //
+  //   // pos
+  //   auto G4Global = 0.5 * (step->GetPreStepPoint()->GetPosition() +
+  //                          step->GetPostStepPoint()->GetPosition());
+  //   // Transform from global coordinates to local coordinates
+  //   auto G4Local = step->GetPreStepPoint()
+  //                      ->GetTouchable()
+  //                      ->GetHistory()
+  //                      ->GetTopTransform()
+  //                      .TransformPoint(G4Global);
+  //
+  //   // Get the layer number
+  //   G4double layer = theTouchable->GetReplicaNumber(1);
+  //
+  //   // time
+  //   float time = step->GetPreStepPoint()->GetGlobalTime();
+  //
+  //   // process name
+  //   const G4VProcess *process =
+  //       step->GetPostStepPoint()->GetProcessDefinedStep();
+  //   auto processName = process->GetProcessName();
+  //   auto processSubType = process->GetProcessSubType();
+  //
+  // }
 }
 
 G4double SteppingAction::BirksAttenuationG4(const G4Step *step) const {

@@ -52,31 +52,29 @@ private:
     G4bool  fCheckOverlaps;                   // option to activate checking of volumes overlaps
     G4double fWorldSizeXY;
     G4double fWorldSizeZ;
+    G4double fCaloSizeXY;
+    G4double fCaloThickness;
+    G4double fCrystalThickness;
+
     DetectorMessenger* fDetectorMessenger;    //to change some geometry parameters
     G4int   fVerboseLevel;                    //verbose
+
     G4Material* fDefaultMaterial;
+    G4Material* fDefaultCrystalMaterial;
 
     G4LogicalVolume*   fWorldLogical;
     G4LogicalVolume*   fCaloLogical;
-    G4LogicalVolume*   fLayerLogical;
+    G4LogicalVolume*   fCrystalLogical;
 
     G4VPhysicalVolume* fWorldPhysical;
-    G4VPhysicalVolume* fCaloPhysical;
-    G4PVReplica*       fLayerPhysical;
-
-    G4VPhysicalVolume* fCrystalPV;
+    G4VPhysicalVolume*   fCaloPhysical;
+    G4VPhysicalVolume*   fCrystalPhysical;
 
     G4String fROOTFilename;
     G4double fStepSize;
 
     static G4ThreadLocal G4GlobalMagFieldMessenger*  fMagFieldMessenger; // magnetic field messenger
 };
-
-// inline functions
-
-inline const G4VPhysicalVolume* DetectorConstruction::GetCrystalPV() const  {
-    return fCrystalPV;
-}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
