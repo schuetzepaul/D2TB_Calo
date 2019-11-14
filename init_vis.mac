@@ -1,0 +1,18 @@
+# Set the name of the output rootfile
+/d2tb/det/filename D2TB.root
+
+# Set the max step size
+/d2tb/det/stepMax 0.5 mm
+
+# Set the range production cut / different than the max step size!
+/d2tb/phys/allCuts 0.05 mm
+
+# Module for printing events
+/run/printProgress 100
+
+# Initialize kernel
+/run/initialize
+
+#
+# Visualization setting
+/control/execute vis.mac
