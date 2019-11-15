@@ -114,11 +114,32 @@ void DetectorConstruction::DefineMaterials()
 
     // LYSO
     density = 7.36*g/cm3;
-    G4Material *lyso = new G4Material(name="LYSO", density, nel=4);
-    lyso->AddElement(elLu, fractionmass = 0.714467891);
-    lyso->AddElement(elY, fractionmass = 0.04033805);
-    lyso->AddElement(elSi, fractionmass = 0.063714272);
-    lyso->AddElement(elO, fractionmass = 0.181479788);
+    G4Material *LYSO = new G4Material(name="LYSO", density, nel=4);
+    LYSO->AddElement(elLu, fractionmass = 0.714467891);
+    LYSO->AddElement(elY, fractionmass = 0.04033805);
+    LYSO->AddElement(elSi, fractionmass = 0.063714272);
+    LYSO->AddElement(elO, fractionmass = 0.181479788);
+
+    const G4int nLYSO = 2;
+    G4double eLYSO[nLYSO] = { 0.1 * eV, 10 * eV };
+    G4double rLYSO[nLYSO] = { 1.81, 1.81 };
+    G4double aLYSO[nLYSO] = { 27.85*cm, 27.85*cm };
+
+    G4MaterialPropertiesTable* propLYSO = new G4MaterialPropertiesTable();
+    propLYSO->AddConstProperty("SCINTILLATIONYIELD", 32000./MeV);
+    propLYSO->AddConstProperty("RESOLUTIONSCALE", 1.0);
+    propLYSO->AddConstProperty("FASTTIMECONSTANT", 1.3*ns);
+    propLYSO->AddConstProperty("YIELDRATIO", 1.0);
+    propLYSO->AddConstProperty("ROUGHNESS", 5.0*deg);
+
+    propLYSO->AddProperty("ABSLENGTH", eLYSO, aLYSO, nLYSO);
+    propLYSO->AddProperty("RINDEX", eLYSO, rLYSO, nLYSO);
+    //Wavelength to relative light output
+    // propLYSO->AddProperty("FASTCOMPONENT", eLYSO, lLYSO, nLYSO);
+
+    LYSO->SetMaterialPropertiesTable(propLYSO);
+
+    //TODO: Wrapping material? Surface definition for reflections?
 
     fDefaultMaterial = G4Material::GetMaterial("G4_AIR");
     fDefaultCrystalMaterial = G4Material::GetMaterial("LYSO");
@@ -131,7 +152,7 @@ void DetectorConstruction::DefineMaterials()
     }
 
     // Print materials
-    // G4cout << *(G4Material::GetMaterialTable()) << G4endl;
+    G4cout << *(G4Material::GetMaterialTable()) << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

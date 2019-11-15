@@ -1,4 +1,4 @@
-# Verbose
+# Verbose detecctor construction
 /d2tb/det/verbose 2
 
 # Set the name of the output rootfile
@@ -16,15 +16,17 @@
 # Set the crystal depth
 /d2tb/det/CrystalDepth 30 cm
 
-# Set the range production cut / different than the max step size!
-/d2tb/phys/allCuts 0.05 mm
-
 # Modulo for printing events
 /run/printProgress 1
 
 # Initialize kernel
 /run/initialize
 
-#
+# Set the verbose for the physics list
+/d2tb/phys/verbose 0
+
+# Set the range production cut / different than the max step size!
+/d2tb/phys/allCuts 0.05 mm
+
 # Visualization setting
 /control/execute vis.mac

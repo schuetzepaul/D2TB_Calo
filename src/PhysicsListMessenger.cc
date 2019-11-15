@@ -4,10 +4,8 @@
 #include "PhysicsList.hh"
 
 #include <G4UIdirectory.hh>
-#include <G4UIcmdWithAString.hh>
-#include <G4UIcmdWithoutParameter.hh>
 #include <G4UIcmdWithADoubleAndUnit.hh>
-#include <G4UIcmdWithABool.hh>
+#include "G4UIcmdWithAnInteger.hh"
 
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
@@ -18,60 +16,72 @@ PhysicsListMessenger::PhysicsListMessenger(PhysicsList* pPhys)
     fDirectory = new G4UIdirectory("/d2tb/phys/");
     fDirectory->SetGuidance("Control the physics lists");
 
-    fGammaCutCMD = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/gammaCut", this);
-    fGammaCutCMD->SetGuidance("Set gamma cut");
-    fGammaCutCMD->SetParameterName("Gcut",false);
-    fGammaCutCMD->SetUnitCategory("Length");
-    fGammaCutCMD->SetRange("Gcut>0.0");
-    fGammaCutCMD->SetDefaultUnit("mm");
-    fGammaCutCMD->AvailableForStates(G4State_PreInit, G4State_Idle);
+    fVerboseCmd = new G4UIcmdWithAnInteger("/d2tb/phys/verbose",this);
+    fVerboseCmd->SetGuidance("set verbose for physics processes");
+    fVerboseCmd->SetParameterName("verbose",true);
+    fVerboseCmd->SetDefaultValue(1);
+    fVerboseCmd->SetRange("verbose>=0");
+    fVerboseCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
-    fElectCutCMD = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/electronCut", this);
-    fElectCutCMD->SetGuidance("Set electron cut");
-    fElectCutCMD->SetParameterName("Ecut",false);
-    fElectCutCMD->SetUnitCategory("Length");
-    fElectCutCMD->SetRange("Ecut>0.0");
-    fElectCutCMD->SetDefaultUnit("mm");
-    fElectCutCMD->AvailableForStates(G4State_PreInit, G4State_Idle);
+    fGammaCutCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/gammaCut", this);
+    fGammaCutCmd->SetGuidance("Set gamma cut");
+    fGammaCutCmd->SetParameterName("Gcut",false);
+    fGammaCutCmd->SetUnitCategory("Length");
+    fGammaCutCmd->SetRange("Gcut>0.0");
+    fGammaCutCmd->SetDefaultUnit("mm");
+    fGammaCutCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
-    fPosCutCMD = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/positronCut", this);
-    fPosCutCMD->SetGuidance("Set positron cut");
-    fPosCutCMD->SetParameterName("Pcut",false);
-    fPosCutCMD->SetUnitCategory("Length");
-    fPosCutCMD->SetRange("Pcut>0.0");
-    fPosCutCMD->SetDefaultUnit("mm");
-    fPosCutCMD->AvailableForStates(G4State_PreInit, G4State_Idle);
+    fElectCutCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/electronCut", this);
+    fElectCutCmd->SetGuidance("Set electron cut");
+    fElectCutCmd->SetParameterName("Ecut",false);
+    fElectCutCmd->SetUnitCategory("Length");
+    fElectCutCmd->SetRange("Ecut>0.0");
+    fElectCutCmd->SetDefaultUnit("mm");
+    fElectCutCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
-    fAllCutCMD = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/allCuts", this);
-    fAllCutCMD->SetGuidance("Set cut for all");
-    fAllCutCMD->SetParameterName("cut",false);
-    fAllCutCMD->SetUnitCategory("Length");
-    fAllCutCMD->SetRange("cut>0.0");
-    fAllCutCMD->SetDefaultUnit("mm");
-    fAllCutCMD->AvailableForStates(G4State_PreInit, G4State_Idle);
+    fPosCutCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/positronCut", this);
+    fPosCutCmd->SetGuidance("Set positron cut");
+    fPosCutCmd->SetParameterName("Pcut",false);
+    fPosCutCmd->SetUnitCategory("Length");
+    fPosCutCmd->SetRange("Pcut>0.0");
+    fPosCutCmd->SetDefaultUnit("mm");
+    fPosCutCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+    fAllCutCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/phys/allCuts", this);
+    fAllCutCmd->SetGuidance("Set cut for all");
+    fAllCutCmd->SetParameterName("cut",false);
+    fAllCutCmd->SetUnitCategory("Length");
+    fAllCutCmd->SetRange("cut>0.0");
+    fAllCutCmd->SetDefaultUnit("mm");
+    fAllCutCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 }
 
 PhysicsListMessenger::~PhysicsListMessenger()
 {
-    delete fGammaCutCMD;
-    delete fElectCutCMD;
-    delete fPosCutCMD;
-    delete fAllCutCMD;
+    delete fVerboseCmd;
+    delete fGammaCutCmd;
+    delete fElectCutCmd;
+    delete fPosCutCmd;
+    delete fAllCutCmd;
 }
 
 void PhysicsListMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 {
-    if (command == fGammaCutCMD) {
-        fPhysicsList->SetCutForGamma(fGammaCutCMD->GetNewDoubleValue(newValue));
+    if( command == fVerboseCmd )
+    {
+        fPhysicsList->SetVerbose(fVerboseCmd->GetNewIntValue(newValue));
     }
-    else if (command == fElectCutCMD) {
-        fPhysicsList->SetCutForElectron(fElectCutCMD->GetNewDoubleValue(newValue));
+    else if (command == fGammaCutCmd) {
+        fPhysicsList->SetCutForGamma(fGammaCutCmd->GetNewDoubleValue(newValue));
     }
-    else if (command == fPosCutCMD) {
-        fPhysicsList->SetCutForPositron(fPosCutCMD->GetNewDoubleValue(newValue));
+    else if (command == fElectCutCmd) {
+        fPhysicsList->SetCutForElectron(fElectCutCmd->GetNewDoubleValue(newValue));
     }
-    else if (command == fAllCutCMD) {
-        G4double cut = fAllCutCMD->GetNewDoubleValue(newValue);
+    else if (command == fPosCutCmd) {
+        fPhysicsList->SetCutForPositron(fPosCutCmd->GetNewDoubleValue(newValue));
+    }
+    else if (command == fAllCutCmd) {
+        G4double cut = fAllCutCmd->GetNewDoubleValue(newValue);
         fPhysicsList->SetCutForGamma(cut);
         fPhysicsList->SetCutForElectron(cut);
         fPhysicsList->SetCutForPositron(cut);

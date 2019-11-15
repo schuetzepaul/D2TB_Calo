@@ -8,9 +8,7 @@ class PhysicsList;
 
 class G4UIdirectory;
 class G4UIcmdWithADoubleAndUnit;
-class G4UIcmdWithABool;
-class G4UIcmdWithAString;
-class G4UIcmdWithoutParameter;
+class G4UIcmdWithAnInteger;
 
 /// Provide control of the physics list and cut parameters
 
@@ -28,12 +26,12 @@ private:
     PhysicsList* fPhysicsList;
 
     G4UIdirectory* fDirectory;
-    G4UIdirectory* fDecayDirectory;
 
-    G4UIcmdWithADoubleAndUnit* fGammaCutCMD;
-    G4UIcmdWithADoubleAndUnit* fElectCutCMD;
-    G4UIcmdWithADoubleAndUnit* fPosCutCMD;
-    G4UIcmdWithADoubleAndUnit* fAllCutCMD;
+    G4UIcmdWithAnInteger* fVerboseCmd;
+    G4UIcmdWithADoubleAndUnit* fGammaCutCmd;
+    G4UIcmdWithADoubleAndUnit* fElectCutCmd;
+    G4UIcmdWithADoubleAndUnit* fPosCutCmd;
+    G4UIcmdWithADoubleAndUnit* fAllCutCmd;
 
 };
 

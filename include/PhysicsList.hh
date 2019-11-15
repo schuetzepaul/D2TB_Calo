@@ -6,6 +6,7 @@
 
 class G4VPhysicsConstructor;
 class PhysicsListMessenger;
+class OpticalPhysics;
 
 /// Use the G4PhysListFactory to select a physics list for this run.  The
 /// physics list can be set from the PHYSLIST environment variable, or a macro
@@ -21,17 +22,24 @@ public:
 
     virtual ~PhysicsList();
 
+    /// Contruct the physics list
+    virtual void ConstructParticle();
+    virtual void ConstructProcess();
+
     /// Used by GEANT4 to set the cuts defined below.
     virtual void SetCuts();
 
     /// Set the range cut for photons.
-    void SetCutForGamma(G4double);
+    void SetCutForGamma(G4double cut);
 
     /// Set the range cut for electrons.
-    void SetCutForElectron(G4double);
+    void SetCutForElectron(G4double cut);
 
     /// Set the range cut for positrons.
-    void SetCutForPositron(G4double);
+    void SetCutForPositron(G4double cut);
+
+    /// Set the verbose level
+    void SetVerbose(G4int verbose);
 
 private:
 
@@ -46,6 +54,15 @@ private:
 
     /// The messenger to control this class.
     PhysicsListMessenger* fMessenger;
+
+    /// Optical Physics List
+    OpticalPhysics* fOpticalPhysics;
+
+    // Toggle Absorption
+    G4bool fAbsorptionOn;
+
+    // Verbose
+    G4int fVerboseLevel;
 
 };
 

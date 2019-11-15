@@ -65,7 +65,8 @@ int main(int argc,char** argv)
     runManager->SetUserInitialization(detConstruction);
 
     // Choice of the physics List
-    runManager->SetUserInitialization(new PhysicsList());
+    auto phys = new PhysicsList();
+    runManager->SetUserInitialization(phys);
 
     // ActionInitialisation
     auto actionInitialization = new ActionInitialization(detConstruction);

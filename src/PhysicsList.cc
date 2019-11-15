@@ -7,9 +7,9 @@
 #include "G4ParticleTypes.hh"
 #include "G4ParticleTable.hh"
 
-#include "G4EmStandardPhysics.hh"
-#include "G4DecayPhysics.hh"
-#include "G4OpticalPhysics.hh"
+#include "OpticalPhysics.hh"
+
+#include "QGSP_BERT_HP.hh"
 #include "G4StepLimiterPhysics.hh"
 
 #include "G4ProcessTable.hh"
@@ -25,27 +25,25 @@ PhysicsList::PhysicsList()
     fCutForGamma     = defaultCutValue;
     fCutForElectron  = defaultCutValue;
     fCutForPositron  = defaultCutValue;
+    fVerboseLevel = 0;
 
     fMessenger = new PhysicsListMessenger(this);
 
-    SetVerboseLevel(2);
+    G4VModularPhysicsList* phys = new QGSP_BERT_HP();
+    for (G4int i = 0; ; ++i) {
+        G4VPhysicsConstructor* elem =
+        const_cast<G4VPhysicsConstructor*> (phys->GetPhysics(i));
+        if (elem == nullptr) break;
+        G4cout << "RegisterPhysics: " << elem->GetPhysicsName() << G4endl;
+        RegisterPhysics(elem);
+    }
 
-    // * EM Physics
-    RegisterPhysics( new G4EmStandardPhysics() );
-
-    // * Decay processes
-    RegisterPhysics( new G4DecayPhysics() );
-
-    //Add the Optical Photon physics list
-    G4OpticalPhysics* opticalPhysics = new G4OpticalPhysics();
-    opticalPhysics->SetScintillationYieldFactor(1.0);
-    opticalPhysics->SetScintillationExcitationRatio(0.0);
-    opticalPhysics->SetMaxNumPhotonsPerStep(300);
-    opticalPhysics->SetMaxBetaChangePerStep(10.0);
-    opticalPhysics->SetTrackSecondariesFirst(kScintillation, true);
-    RegisterPhysics(opticalPhysics);
+    fAbsorptionOn = true;
+    G4cout << "RegisterPhysics: OpticalPhysics" << G4endl;
+    RegisterPhysics(fOpticalPhysics = new OpticalPhysics(fAbsorptionOn, fVerboseLevel));
 
     //Add the step limiter
+    G4cout << "RegisterPhysics: G4StepLimiterPhysics" << G4endl;
     RegisterPhysics(new G4StepLimiterPhysics());
 }
 
@@ -54,9 +52,19 @@ PhysicsList::~PhysicsList()
     delete fMessenger;
 }
 
+void PhysicsList::ConstructParticle()
+{
+    G4VModularPhysicsList::ConstructParticle();
+}
+
+void PhysicsList::ConstructProcess()
+{
+    G4VModularPhysicsList::ConstructProcess();
+}
+
 void PhysicsList::SetCuts()
 {
-    if (verboseLevel >0)
+    if (fVerboseLevel > 0)
     {
         G4cout << "PhysicsList::SetCuts:";
         G4cout << "RangeCut Length : " << G4BestUnit(defaultCutValue, "Length") << G4endl;
@@ -68,7 +76,7 @@ void PhysicsList::SetCuts()
     SetCutValue(fCutForElectron, "e-");
     SetCutValue(fCutForPositron, "e+");
 
-    if (verboseLevel>0) DumpCutValuesTable();
+    if (fVerboseLevel > 0) DumpCutValuesTable();
 }
 
 void PhysicsList::SetCutForGamma(G4double cut) {
@@ -84,4 +92,15 @@ void PhysicsList::SetCutForElectron(G4double cut) {
 void PhysicsList::SetCutForPositron(G4double cut) {
     fCutForPositron = cut;
     SetParticleCuts(fCutForPositron, G4Positron::Positron());
+}
+
+void PhysicsList::SetVerbose(G4int verbose)
+{
+    fVerboseLevel = verbose;
+
+    fOpticalPhysics->GetScintillationProcess()->SetVerboseLevel(verbose);
+    fOpticalPhysics->GetAbsorptionProcess()->SetVerboseLevel(verbose);
+    fOpticalPhysics->GetRayleighScatteringProcess()->SetVerboseLevel(verbose);
+    fOpticalPhysics->GetMieHGScatteringProcess()->SetVerboseLevel(verbose);
+    fOpticalPhysics->GetBoundaryProcess()->SetVerboseLevel(verbose);
 }
