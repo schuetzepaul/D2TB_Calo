@@ -33,13 +33,17 @@ public:
     void SetVerboseLevel(G4int val) { fVerboseLevel = val; }
     void SetROOTFilename(G4String val) { fROOTFilename = val; }
     void SetMaxStepSize(G4double val) { fStepSize = val; }
+    void SetNCrystal(G4int val) { fNCrystal = val; }
+    void SetCrystalLengthXY(G4double val) { fCrystalLengthXY = val; }
+    void SetCrystalDepth(G4double val) { fCrystalDepth = val; }
 
 
     G4int GetVerboseLevel() const { return fVerboseLevel; }
     G4String GetROOTFilename() const { return fROOTFilename; }
     G4double GetMaxStepSize() const { return fStepSize; }
-
-    const G4VPhysicalVolume* GetCrystalPV() const;
+    G4int GetNCrystal() const { return fNCrystal; }
+    G4double GetCrystalLengthXY() const { return fCrystalLengthXY; }
+    G4double GetCrystalDepth() const { return fCrystalDepth; }
 
 private:
     // methods
@@ -52,9 +56,15 @@ private:
     G4bool  fCheckOverlaps;                   // option to activate checking of volumes overlaps
     G4double fWorldSizeXY;
     G4double fWorldSizeZ;
+
+    //CaloBox
     G4double fCaloSizeXY;
-    G4double fCaloThickness;
-    G4double fCrystalThickness;
+    G4double fCaloDepth;
+
+    //Crystal
+    G4int fNCrystal;
+    G4double fCrystalLengthXY;
+    G4double fCrystalDepth;
 
     DetectorMessenger* fDetectorMessenger;    //to change some geometry parameters
     G4int   fVerboseLevel;                    //verbose

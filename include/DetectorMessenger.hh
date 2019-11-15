@@ -34,6 +34,9 @@ private:
     G4UIcmdWithAnInteger*           fVerboseCmd;
     G4UIcmdWithAString*             fFilenameCmd;
     G4UIcmdWithADoubleAndUnit*      fStepSizeCmd;
+    G4UIcmdWithAnInteger*           fNCrystalCmd;
+    G4UIcmdWithADoubleAndUnit*      fCrystalLengthXYCmd;
+    G4UIcmdWithADoubleAndUnit*      fCrystalDepthCmd;
 
 };
 

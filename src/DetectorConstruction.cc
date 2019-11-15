@@ -36,8 +36,10 @@ fCheckOverlaps(true),
 fWorldSizeXY(0),
 fWorldSizeZ(0),
 fCaloSizeXY(0),
-fCaloThickness(0),
-fCrystalThickness(0),
+fCaloDepth(0),
+fNCrystal(0),
+fCrystalLengthXY(0),
+fCrystalDepth(0),
 fDetectorMessenger(nullptr),
 fVerboseLevel(1),
 fDefaultMaterial(nullptr),
@@ -51,7 +53,6 @@ fROOTFilename(""),
 fStepSize(1*mm)
 {
     //Compute Params
-    ComputeParameters();
     fDetectorMessenger = new DetectorMessenger(this);
 }
 
@@ -68,15 +69,16 @@ void DetectorConstruction::ComputeParameters()
     fWorldSizeXY = 1*m;
     fWorldSizeZ  = 1*m;
 
-    fCaloSizeXY = 10*cm;
-    fCaloThickness = 30*cm;
-    fCrystalThickness = fCaloThickness;
+    fCaloSizeXY = fCrystalLengthXY*fNCrystal;
+    fCaloDepth = fCrystalDepth;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
+    ComputeParameters();
+
     // Define materials
     DefineMaterials();
 
@@ -140,27 +142,27 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
     ComputeParameters();
 
     // World Box
-    auto worldBox = new G4Box("World", fWorldSizeXY/2, fWorldSizeXY/2, fWorldSizeZ/2);
+    auto worldBox = new G4Box("WorldBox", fWorldSizeXY/2, fWorldSizeXY/2, fWorldSizeZ/2);
     // World Logical Volume (associate it with the world box)
-    fWorldLogical = new G4LogicalVolume(worldBox, fDefaultMaterial, "World");
+    fWorldLogical = new G4LogicalVolume(worldBox, fDefaultMaterial, "WorldBoxLV");
     // Placement of the World Logical Volume
-    fWorldPhysical = new G4PVPlacement(0, G4ThreeVector(), fWorldLogical, "World", 0, false, 0, fCheckOverlaps);
+    fWorldPhysical = new G4PVPlacement(0, G4ThreeVector(), fWorldLogical, "WorldBoxPhys", 0, false, 0, fCheckOverlaps);
 
     //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
     // Calorimeter Box
-    auto caloBox = new G4Box("Calorimeter", fCaloSizeXY/2, fCaloSizeXY/2, fCaloThickness/2);
+    auto caloBox = new G4Box("CalorimeterBox", fCaloSizeXY/2, fCaloSizeXY/2, fCaloDepth/2);
     // Calorimeter logical volume
-    fCaloLogical = new G4LogicalVolume(caloBox, fDefaultMaterial, "Calorimeter");
+    fCaloLogical = new G4LogicalVolume(caloBox, fDefaultMaterial, "CalorimeterBoxLV");
     // Calorimeter physical volume
-    fCaloPhysical = new G4PVPlacement(0, G4ThreeVector(), fCaloLogical, "Calorimeter", fWorldLogical, false, 0, fCheckOverlaps);
+    fCaloPhysical = new G4PVPlacement(0, G4ThreeVector(0, 0, -fCaloDepth/2), fCaloLogical, "CalorimeterBoxPhys", fWorldLogical, false, 0, fCheckOverlaps);
 
     //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
     // Crystal Box
-    auto crystalBox = new G4Box("Crystal", fCaloSizeXY/2, fCaloSizeXY/2, fCrystalThickness/2);
+    auto crystalBox = new G4Box("CrystalBox", fCrystalLengthXY/2, fCrystalLengthXY/2, fCrystalDepth/2);
     // Crystal logical volume
-    fCrystalLogical = new G4LogicalVolume(crystalBox, fDefaultCrystalMaterial, "Crystal");
+    fCrystalLogical = new G4LogicalVolume(crystalBox, fDefaultCrystalMaterial, "CrystalBoxLV");
     // Crystal physical volume
-    fCrystalPhysical = new G4PVPlacement(0, G4ThreeVector(), fCrystalLogical, "Crystal", fWorldLogical, false, 0, fCheckOverlaps);
+    fCrystalPhysical = new G4PVReplica("Crystal", fCrystalLogical, fCaloLogical, kXAxis, fNCrystal, fCrystalLengthXY);
 
     // Attach limits to the layer logical volume (G4UserLimits.hh)
     G4UserLimits *limits = new G4UserLimits();
@@ -170,6 +172,10 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
     // Visualization attributes
     // Visualization attributes
     fWorldLogical->SetVisAttributes (G4VisAttributes::GetInvisible());
+
+    auto CaloVisAtt = new G4VisAttributes(G4Colour(0.5,0.,0.));
+    CaloVisAtt->SetVisibility(true);
+    fCaloLogical->SetVisAttributes(CaloVisAtt);
 
     auto CrystalVisAtt = new G4VisAttributes(G4Colour(1.0,1.0,1.0));
     CrystalVisAtt->SetVisibility(true);
@@ -189,6 +195,8 @@ void DetectorConstruction::PrintCaloParameters()
     G4cout
     << G4endl
     << "------------------------------------------------------------" << G4endl
+    << " CaloBox size " << G4BestUnit(fCaloSizeXY, "Length") << " depth " << G4BestUnit(fCaloDepth, "Length") << G4endl
+    << " NCrystal: " << fNCrystal << " The crystal size in XY is " << G4BestUnit(fCrystalLengthXY, "Length") << " and the depth is " << G4BestUnit(fCrystalDepth, "Length") << G4endl
     << " Output ROOT file set to " << fROOTFilename << G4endl
     << " The max step size is set to " << G4BestUnit(fStepSize, "Length") << G4endl
     << "------------------------------------------------------------" << G4endl;
