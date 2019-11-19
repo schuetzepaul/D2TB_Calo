@@ -7,21 +7,19 @@
 
 #include "TrackingAction.hh"
 
-#include "G4RunManager.hh"
+#include "G4TrackingManager.hh"
 #include "G4Track.hh"
+#include "G4ParticleTypes.hh"
 
-#include "G4SystemOfUnits.hh"
-#include "G4UnitsTable.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 TrackingAction::TrackingAction()
-:G4UserTrackingAction()
 { }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void TrackingAction::PreUserTrackingAction(const G4Track*)
+void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
 {
 
 }

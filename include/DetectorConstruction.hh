@@ -6,6 +6,8 @@
 
 #include "G4VUserDetectorConstruction.hh"
 #include "globals.hh"
+#include "G4VPVParameterisation.hh"
+#include "G4Cache.hh"
 
 class G4LogicalVolume;
 class G4VPhysicalVolume;
@@ -14,6 +16,39 @@ class G4Material;
 class G4GlobalMagFieldMessenger;
 class DetectorMessenger;
 class G4UnitDefinition;
+class G4Box;
+class PhotonDetSD;
+
+//Parametrisation for the crystal position
+class CrystalParameterisation : public G4VPVParameterisation
+{
+
+public:
+    CrystalParameterisation(G4double XYLength, G4double ZLength, G4double firstX, G4double firstY, G4double firstZ);
+
+    virtual ~CrystalParameterisation();
+
+    // position, rotation
+    virtual void ComputeTransformation(const G4int copyNo, G4VPhysicalVolume* physVol) const;
+
+    // size
+    virtual void ComputeDimensions(G4Box& crystalBox, const G4int copyNo, const G4VPhysicalVolume* physVol) const;
+
+    // shape
+    // virtual G4VSolid* ComputeSolid(const G4int copyNo, G4VPhysicalVolume* physVol);
+
+    // material, sensitivity, visAtt
+    // virtual G4Material* ComputeMaterial(const G4int copyNo, G4VPhysicalVolume* physVol, const G4VTouchable *parentTouch=0);
+    // G4VTouchable should not be used for ordinary parameterization
+
+private:
+    G4double fXhalfLength;
+    G4double fYhalfLength;
+    G4double fZhalfLength;
+    G4double fStartX;
+    G4double fStartY;
+    G4double fStartZ;
+};
 
 /// Detector construction class to define materials and geometry.
 
@@ -49,7 +84,7 @@ private:
     // methods
     void DefineMaterials();
     void ComputeParameters();
-    void PrintCaloParameters();
+    void PrintParameters();
     G4VPhysicalVolume* DefineVolumes();
 
     //data members
@@ -66,24 +101,34 @@ private:
     G4double fCrystalLengthXY;
     G4double fCrystalDepth;
 
+    //Glass
+    G4double fGlassDepth;
+
+    //Foil
+    G4double fFoilThickness;
+
     DetectorMessenger* fDetectorMessenger;    //to change some geometry parameters
     G4int   fVerboseLevel;                    //verbose
 
     G4Material* fDefaultMaterial;
-    G4Material* fDefaultCrystalMaterial;
+    G4Material* fCrystalMaterial;
+    G4Material* fGlassMaterial;
+    G4Material* fFoilMaterial;
 
     G4LogicalVolume*   fWorldLogical;
     G4LogicalVolume*   fCaloLogical;
     G4LogicalVolume*   fCrystalLogical;
 
     G4VPhysicalVolume* fWorldPhysical;
-    G4VPhysicalVolume*   fCaloPhysical;
-    G4VPhysicalVolume*   fCrystalPhysical;
+    G4VPhysicalVolume* fCaloPhysical;
+    G4VPhysicalVolume* fCrystalPhysical;
 
     G4String fROOTFilename;
     G4double fStepSize;
 
     static G4ThreadLocal G4GlobalMagFieldMessenger*  fMagFieldMessenger; // magnetic field messenger
+
+    G4Cache<PhotonDetSD*> fSD;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

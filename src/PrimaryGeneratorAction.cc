@@ -19,7 +19,7 @@ fGPSParticleGun(nullptr)
     fG4ParticleGun->SetParticleDefinition(particleTable->FindParticle("e-"));
     //Default energy,position,momentum
     fG4ParticleGun->SetParticleEnergy(1.*GeV);
-    fG4ParticleGun->SetParticlePosition(G4ThreeVector(0.0 , 0.0, -10.0*cm));
+    fG4ParticleGun->SetParticlePosition(G4ThreeVector(4.5*cm , 4.5*cm, -10.0*cm));
     fG4ParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,0.,1.));
 
     // fGPSParticleGun  = new G4GeneralParticleSource();

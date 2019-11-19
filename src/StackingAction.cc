@@ -6,17 +6,17 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 #include "StackingAction.hh"
-
-#include "G4Track.hh"
+#include "G4VProcess.hh"
 #include "G4ParticleDefinition.hh"
-
-#include "G4SystemOfUnits.hh"
-#include "G4PhysicalConstants.hh"
+#include "G4ParticleTypes.hh"
+#include "G4Track.hh"
+#include "G4ios.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 StackingAction::StackingAction()
-:G4UserStackingAction()
+:G4UserStackingAction(),
+fScintillationCounter(0)
 {
 
 }
@@ -32,28 +32,29 @@ StackingAction::~StackingAction()
 
 G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track* aTrack)
 {
-    // Get the particle type of the new track.
-    const G4ParticleDefinition* particle = aTrack->GetDefinition();
-
-    if (aTrack->GetParentID() <= 0) return fUrgent;
-
-    // This is where we can throw away particles that we don't want to track.
-    // Drop photons below the "lowest" nuclear lines.  The lowest I know if is
-    // about 6 keV, and atomic shells start messing with the cross section at
-    // about 70 keV.
-    if (particle->GetParticleName() == "gamma") {
-        if (aTrack->GetKineticEnergy() < 10.*CLHEP::keV) return fKill;
+    if(aTrack->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition())     // particle is optical photon
+    {
+        if(aTrack->GetParentID() > 0)     // particle is secondary
+        {
+            if(aTrack->GetCreatorProcess()->GetProcessName() == "Scintillation")
+            fScintillationCounter++;
+        }
     }
 
-    // if (particle->GetParticleName() == "opticalphoton") {
-    //     return fKill;
-    // }
-    //
-    // if (particle->GetParticleName() == "thermalelectron") {
-    //     return fKill;
-    // }
-
-    return G4UserStackingAction::ClassifyNewTrack(aTrack);
+    return fUrgent;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void StackingAction::NewStage()
+{
+  G4cout << "Number of Scintillation photons produced in this event : "
+         << fScintillationCounter << G4endl;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void StackingAction::PrepareNewEvent()
+{
+  fScintillationCounter = 0;
+}

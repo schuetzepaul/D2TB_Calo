@@ -9,6 +9,7 @@
 #define TrackingAction_h 1
 
 #include "G4UserTrackingAction.hh"
+#include "globals.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -19,8 +20,8 @@ public:
     TrackingAction();
     ~TrackingAction() {};
 
-    virtual void  PreUserTrackingAction(const G4Track*);
-    virtual void PostUserTrackingAction(const G4Track*);
+    virtual void  PreUserTrackingAction(const G4Track* aTrack);
+    virtual void PostUserTrackingAction(const G4Track* aTrack);
 
 private:
 

@@ -1,33 +1,34 @@
 /// \file RunAction.cc
 /// \brief Implementation of the RunAction class
 
+#include "G4Timer.hh"
+
 #include "RunAction.hh"
 
 #include "G4Run.hh"
 #include "G4RunManager.hh"
-#include "G4UnitsTable.hh"
-#include "G4SystemOfUnits.hh"
 
 #include <ctime>
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 RunAction::RunAction()
-: G4UserRunAction()
+: G4UserRunAction(),
+fTimer(0)
 {
-
+    fTimer = new G4Timer;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 RunAction::~RunAction()
 {
-
+    delete fTimer;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void RunAction::BeginOfRunAction(const G4Run* /*run*/)
+void RunAction::BeginOfRunAction(const G4Run* aRun)
 {
     //to be sure to generate different events!
     long seeds[2];
@@ -35,13 +36,18 @@ void RunAction::BeginOfRunAction(const G4Run* /*run*/)
     seeds[0] = systime;
     seeds[1] = systime * G4UniformRand();
     G4Random::setTheSeeds(seeds);
+
+    G4cout << "### Run " << aRun->GetRunID() << " start." << G4endl;
+    fTimer->Start();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void RunAction::EndOfRunAction(const G4Run* /*run*/)
+void RunAction::EndOfRunAction(const G4Run* aRun)
 {
-
+    fTimer->Stop();
+    G4cout << "number of event = " << aRun->GetNumberOfEvent()
+    << " " << *fTimer << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

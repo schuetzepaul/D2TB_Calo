@@ -2,7 +2,12 @@
 #include "ActionInitialization.hh"
 #include "PhysicsList.hh"
 
+#ifdef G4MULTITHREADED
+#include "G4MTRunManager.hh"
+#else
 #include "G4RunManager.hh"
+#endif
+
 #include "G4UImanager.hh"
 #include "G4UIcommand.hh"
 
@@ -16,7 +21,7 @@
 namespace {
     void PrintUsage() {
         G4cerr << " Usage: " << G4endl;
-        G4cerr << " D2TB_Calo [-m macro] [-u UIsession] [-h help]" << G4endl;
+        G4cerr << " D2TB_Calo [-m macro] [-h help]" << G4endl;
     }
 }
 
@@ -25,17 +30,14 @@ namespace {
 int main(int argc,char** argv)
 {
     // Evaluate arguments
-    if ( argc > 7 ) {
+    if ( argc > 5 ) {
         PrintUsage();
         return 1;
     }
 
     G4String macro;
-    G4String session;
-
-    for ( G4int i=1; i<argc; i=i+2 ) {
+    for ( G4int i = 1; i < argc; i = i+2 ) {
         if      ( G4String(argv[i]) == "-m" ) macro = argv[i+1];
-        else if ( G4String(argv[i]) == "-u" ) session = argv[i+1];
         else if ( G4String(argv[i]) == "-h" ) {
             PrintUsage();
             return 1;
@@ -47,17 +49,25 @@ int main(int argc,char** argv)
     }
 
     // Detect interactive mode (if no macro provided) and define UI session
-    G4UIExecutive* ui = 0;
+    G4UIExecutive* ui = nullptr;
 
-    if ( ! macro.size() ) {
-        ui = new G4UIExecutive(argc, argv, session);
+    if (macro.size() == 0) {
+        ui = new G4UIExecutive(argc, argv);
     }
 
     // Choose the Random engine
     G4Random::setTheEngine(new CLHEP::RanecuEngine);
 
     // Construct the default run manager
+    #ifdef G4MULTITHREADED
+    G4MTRunManager * runManager = new G4MTRunManager;
+    G4int nThreads = std::min(G4Threading::G4GetNumberOfCores(), 4);
+    runManager->SetNumberOfThreads(nThreads);
+    G4cout << "===== D2TB_Calo is started with "
+    <<  runManager->GetNumberOfThreads() << " threads =====" << G4endl;
+    #else
     G4RunManager * runManager = new G4RunManager;
+    #endif
 
     // Set mandatory initialization classes
     // Construction of the detector
@@ -101,4 +111,6 @@ int main(int argc,char** argv)
     // in the main() program !
     delete visManager;
     delete runManager;
+
+    return 0;
 }

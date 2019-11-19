@@ -1,25 +1,26 @@
 /// \file SteppingAction.cc
 /// \brief Implementation of the SteppingAction class
 
-#include "DetectorConstruction.hh"
-#include "EventAction.hh"
 #include "SteppingAction.hh"
 
-#include "G4EmSaturation.hh"
-#include "G4Event.hh"
-#include "G4NavigationHistory.hh"
 #include "G4Step.hh"
-#include "G4TouchableHandle.hh"
 #include "G4Track.hh"
-#include "G4VProcess.hh"
-#include "G4Version.hh"
+
+#include "G4Event.hh"
+#include "G4RunManager.hh"
+
+#include "G4ProcessManager.hh"
+#include "G4OpBoundaryProcess.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-SteppingAction::SteppingAction(const DetectorConstruction *detectorConstruction,
-                               EventAction *eventAction)
-    : G4UserSteppingAction(), fDetConstruction(detectorConstruction),
-      fEvtAction(eventAction) {}
+SteppingAction::SteppingAction()
+: G4UserSteppingAction()
+{
+    fBounceLimit = 100000;
+    fOpProcess = NULL;
+    ResetCounters();
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -27,81 +28,80 @@ SteppingAction::~SteppingAction() {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void SteppingAction::UserSteppingAction(const G4Step *step) {
-  // Collect energy and track length step by step
+void SteppingAction::UserSteppingAction(const G4Step *theStep) {
 
-  // get volume of the current step
-  // auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
+    G4Track* theTrack = theStep->GetTrack();
 
-  // if (volume == "") {
-  //   // energy deposit
-  //   auto edep = step->GetTotalEnergyDeposit();
-  //
-  //   // Skip no deposited energy
-  //   if (edep <= 0)
-  //     return;
-  //
-  //   // Birks using method provided by G4
-  //   auto edepBirksG4 = BirksAttenuationG4(step);
-  //
-  //   // step length
-  //   G4double stepLength = 0.;
-  //   if (step->GetTrack()->GetDefinition()->GetPDGCharge() != 0.) {
-  //     stepLength = step->GetStepLength();
-  //   }
-  //
-  //   // G4Touchable
-  //   G4TouchableHandle theTouchable =
-  //       step->GetPreStepPoint()->GetTouchableHandle();
-  //
-  //   // pos
-  //   auto G4Global = 0.5 * (step->GetPreStepPoint()->GetPosition() +
-  //                          step->GetPostStepPoint()->GetPosition());
-  //   // Transform from global coordinates to local coordinates
-  //   auto G4Local = step->GetPreStepPoint()
-  //                      ->GetTouchable()
-  //                      ->GetHistory()
-  //                      ->GetTopTransform()
-  //                      .TransformPoint(G4Global);
-  //
-  //   // Get the layer number
-  //   G4double layer = theTouchable->GetReplicaNumber(1);
-  //
-  //   // time
-  //   float time = step->GetPreStepPoint()->GetGlobalTime();
-  //
-  //   // process name
-  //   const G4VProcess *process =
-  //       step->GetPostStepPoint()->GetProcessDefinedStep();
-  //   auto processName = process->GetProcessName();
-  //   auto processSubType = process->GetProcessSubType();
-  //
-  // }
+    G4StepPoint* thePrePoint  = theStep->GetPreStepPoint();
+    G4StepPoint* thePostPoint = theStep->GetPostStepPoint();
+
+    G4VPhysicalVolume* thePrePV  = thePrePoint->GetPhysicalVolume();
+    G4VPhysicalVolume* thePostPV = thePostPoint->GetPhysicalVolume();
+
+    G4String thePrePVname  = " ";
+    G4String thePostPVname = " ";
+
+    if (thePostPV) {
+        thePrePVname  = thePrePV->GetName();
+        thePostPVname = thePostPV->GetName();
+    }
+
+    // Retrieve the status of the photon
+    G4OpBoundaryProcessStatus theStatus = Undefined;
+    G4ProcessManager* OpManager =  G4OpticalPhoton::OpticalPhoton()->GetProcessManager();
+
+    if (OpManager) {
+        G4int MAXofPostStepLoops =
+        OpManager->GetPostStepProcessVector()->entries();
+        G4ProcessVector* fPostStepDoItVector =
+        OpManager->GetPostStepProcessVector(typeDoIt);
+
+        for ( G4int i = 0; i < MAXofPostStepLoops; i++) {
+            G4VProcess* fCurrentProcess = (*fPostStepDoItVector)[i];
+            fOpProcess = dynamic_cast<G4OpBoundaryProcess*>(fCurrentProcess);
+            if (fOpProcess) { theStatus = fOpProcess->GetStatus(); break;}
+        }
+    }
+
+    switch (theStatus) {
+
+    case FresnelReflection:
+        fCounterBounce++;
+        return;
+
+    case TotalInternalReflection:
+        // Kill the track if it's number of bounces exceeded the limit
+        if (fBounceLimit > 0 && fCounterBounce >= fBounceLimit)
+        {
+            theTrack->SetTrackStatus(fStopAndKill);
+            ResetCounters();
+            G4cout << "\n Bounce Limit Exceeded" << G4endl;
+            return;
+        }
+        break;
+
+        // Detected by a detector
+    case Detection:
+        if ( thePostPVname == "GlassBox" ) {
+            G4cout << "Arrived at the glass" << G4endl;
+            // Stop Tracking when it hits the detector's surface
+            ResetCounters();
+            theTrack->SetTrackStatus(fStopAndKill);
+            return;
+        }
+        break;
+
+    default: break;
+
+    }
+
+    // Check for absorbed photons
+    if (theTrack->GetTrackStatus() != fAlive){
+        ResetCounters();
+        return;
+    }
+
 }
 
-G4double SteppingAction::BirksAttenuationG4(const G4Step *step) const {
-#if G4VERSION_NUMBER >= 1001
-  static G4EmSaturation fEmSaturation(0);
-#else
-  static G4EmSaturation fEmSaturation();
-  fEmSaturation.SetVerbose(0);
-#endif
-
-#if G4VERSION_NUMBER >= 1030
-  fEmSaturation.InitialiseG4Saturation();
-#else
-#endif
-
-  double energyDeposition = step->GetTotalEnergyDeposit();
-  double length = step->GetStepLength();
-  double niel = step->GetNonIonizingEnergyDeposit();
-  const G4Track *trk = step->GetTrack();
-  const G4ParticleDefinition *particle = trk->GetDefinition();
-  const G4MaterialCutsCouple *couple = trk->GetMaterialCutsCouple();
-  double engyVis = fEmSaturation.VisibleEnergyDeposition(
-      particle, couple, length, energyDeposition, niel);
-
-  return engyVis;
-}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

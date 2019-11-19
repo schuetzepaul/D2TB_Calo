@@ -1,0 +1,30 @@
+# Verbose detector construction
+/d2tb/det/verbose 2
+
+# Set the name of the output rootfile
+/d2tb/det/filename D2TB.root
+
+# Set the number of crystals
+/d2tb/det/NumberOfCrystals 9
+
+# Set the crystal XY length
+/d2tb/det/CrystalLengthXY 3 cm
+
+# Set the crystal depth
+/d2tb/det/CrystalDepth 10 cm
+
+# Modulo for printing events
+/run/printProgress 1
+
+/run/initialize
+
+# Set the verbose for the physics list
+/d2tb/phys/verbose 0
+
+/gun/particle mu-
+/gun/energy 1 GeV
+#/gun/position 1.5 1.5 -10 cm
+/gun/position 4.5 4.5 -10 cm
+/gun/direction 0 0 1
+
+/run/beamOn 1

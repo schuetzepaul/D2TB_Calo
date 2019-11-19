@@ -8,12 +8,8 @@
 
 #include "globals.hh"
 
-class DetectorConstruction;
-class EventAction;
-class G4Event;
-class G4Track;
+class G4OpBoundaryProcess;
 class G4Step;
-class G4EmSaturation;
 
 /// Stepping action class.
 ///
@@ -24,16 +20,25 @@ class G4EmSaturation;
 class SteppingAction : public G4UserSteppingAction
 {
 public:
-    SteppingAction(const DetectorConstruction* detectorConstruction, EventAction* eventAction);
+    SteppingAction();
     virtual ~SteppingAction();
 
-    virtual void UserSteppingAction(const G4Step* step);
+    virtual void UserSteppingAction(const G4Step* theStep);
+
+    inline void ResetCounters()
+    {
+      fCounterBounce = 0;
+    }
 
 private:
-    G4double BirksAttenuationG4(const G4Step* step) const;
 
-    const DetectorConstruction* fDetConstruction;
-    EventAction* fEvtAction;
+    // Artificially kill the photon after it has bounced more than this number
+    G4int fBounceLimit;
+
+    // total number of bounces that a photon been through
+    G4int fCounterBounce;
+
+     G4OpBoundaryProcess* fOpProcess;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

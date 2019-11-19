@@ -34,13 +34,13 @@ void ActionInitialization::BuildForMaster() const
 void ActionInitialization::Build() const
 {
     //Here set specify user actions!
-    SetUserAction(new PrimaryGeneratorAction);
+    SetUserAction(new PrimaryGeneratorAction());
     SetUserAction(new RunAction());
     EventAction *evtAction = new EventAction();
     SetUserAction(evtAction);
-    SetUserAction(new SteppingAction(fDetConstruction, evtAction));
-    SetUserAction(new TrackingAction);
-    SetUserAction(new StackingAction);
+    SetUserAction(new SteppingAction());
+    SetUserAction(new TrackingAction());
+    SetUserAction(new StackingAction());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
