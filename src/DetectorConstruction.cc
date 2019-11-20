@@ -7,13 +7,15 @@
 #include "G4Box.hh"
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
-#include "G4PVReplica.hh"
 #include "G4PVParameterised.hh"
+#include "CrystalParameterisation.hh"
+
+#include "G4GeometryManager.hh"
+#include "G4SolidStore.hh"
+#include "G4LogicalVolumeStore.hh"
+#include "G4PhysicalVolumeStore.hh"
 
 #include "G4RunManager.hh"
-#include "G4GlobalMagFieldMessenger.hh"
-#include "G4AutoDelete.hh"
-#include "G4UnitsTable.hh"
 
 #include "G4OpticalSurface.hh"
 #include "G4LogicalSkinSurface.hh"
@@ -26,70 +28,11 @@
 
 #include "G4PhysicalConstants.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4UnitsTable.hh"
 
 #include "PhotonDetSD.hh"
 
 #include "G4UserLimits.hh"
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-CrystalParameterisation::CrystalParameterisation(G4double XYLength, G4double ZLength, G4double firstX, G4double firstY, G4double firstZ)
-{
-    fXhalfLength = XYLength/2.;
-    fYhalfLength = XYLength/2.;
-    fZhalfLength = ZLength/2.;
-
-    fStartX = firstX;
-    fStartY = firstY;
-    fStartZ = firstZ;
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-CrystalParameterisation::~CrystalParameterisation() {}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void CrystalParameterisation::ComputeTransformation(const G4int copyNo, G4VPhysicalVolume* physVol) const
-{
-    G4double Xpos = fStartX;
-    G4double Ypos = fStartY;
-    G4double Zpos = fStartZ;
-
-    if(copyNo < 3) {
-        Xpos = fStartX + copyNo * fXhalfLength*2;
-    }
-
-    if(copyNo > 2 && copyNo < 6) {
-        Xpos = fStartX + (copyNo - 3)* fXhalfLength*2;
-        Ypos = fStartY + fXhalfLength*2;
-    }
-
-    if(copyNo > 5) {
-        Xpos = fStartX + (copyNo - 6)* fXhalfLength*2;
-        Ypos = fStartY + fXhalfLength*4;
-    }
-
-    // G4cout << "Copy " << copyNo << " placed at (x, y, z) : (" << Xpos << ", " << Ypos << ", " << Zpos << ")" << G4endl;
-
-    G4ThreeVector origin(Xpos, Ypos, Zpos);
-    physVol->SetTranslation(origin);
-    physVol->SetRotation(0);
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void CrystalParameterisation::ComputeDimensions(G4Box& crystalBox, const G4int copyNo, const G4VPhysicalVolume* physVol) const
-{
-    crystalBox.SetXHalfLength(fXhalfLength);
-    crystalBox.SetYHalfLength(fYhalfLength);
-    crystalBox.SetZHalfLength(fZhalfLength);
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-G4ThreadLocal
-G4GlobalMagFieldMessenger* DetectorConstruction::fMagFieldMessenger = nullptr;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -110,7 +53,6 @@ fWorldLogical(nullptr),
 fCaloLogical(nullptr),
 fCrystalLogical(nullptr),
 fWorldPhysical(nullptr),
-fCaloPhysical(nullptr),
 fCrystalPhysical(nullptr),
 fROOTFilename(""),
 fStepSize(1*mm)
@@ -131,11 +73,13 @@ void DetectorConstruction::ComputeParameters()
     //World size
     fWorldSizeXY = 1*m;
     fWorldSizeZ  = 1*m;
+
+    fSiPMSize = 1*cm;
+    fSiPMDepth = 0.05*mm;
+
     G4int fNCrystalPerRow = 3;
-    fGlassDepth = 3*mm;
     fCaloSizeXY = fCrystalLengthXY*fNCrystalPerRow;
-    fCaloDepth = fCrystalDepth + fGlassDepth;
-    fFoilThickness = 0.1*mm;
+    fCaloDepth = fCrystalDepth+2*fSiPMDepth;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -158,7 +102,7 @@ void DetectorConstruction::DefineMaterials()
     // Lead material defined using NIST Manager
     auto nistManager = G4NistManager::Instance();
     nistManager->FindOrBuildMaterial("G4_AIR");
-    nistManager->FindOrBuildMaterial("G4_Pyrex_Glass");
+    nistManager->FindOrBuildMaterial("G4_Si");
 
     G4double a, z, density, fractionmass;
     G4String name, symbol;
@@ -182,13 +126,6 @@ void DetectorConstruction::DefineMaterials()
     a = 1.00794*g/mole;
     G4Element *elH = new G4Element(name="Hydrogen", symbol="H", z=1., a);
 
-    //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-    density = 1.065*g/cm3;
-    G4Material *polystyrole = new G4Material(name="polystyrole", density, nel=2);
-    polystyrole->AddElement(elC, fractionmass = 0.5);
-    polystyrole->AddElement(elH, fractionmass = 0.5);
-
     // LYSO https://www.crystals.saint-gobain.com/sites/imdf.crystals.com/files/documents/lyso-material-data-sheet_1.pdf
     // https://iopscience.iop.org/article/10.1088/1748-0221/9/06/C06008/pdf
 
@@ -198,6 +135,11 @@ void DetectorConstruction::DefineMaterials()
     LYSO->AddElement(elY, fractionmass = 0.04033805);
     LYSO->AddElement(elSi, fractionmass = 0.063714272);
     LYSO->AddElement(elO, fractionmass = 0.181479788);
+
+
+    fDefaultMaterial = G4Material::GetMaterial("G4_AIR");
+    fCrystalMaterial = G4Material::GetMaterial("LYSO");
+    fSiPMMaterial = G4Material::GetMaterial("G4_Si");
 
     const G4int nLYSO = 1;
     G4double eLYSO[nLYSO] = { 2.8 *eV };
@@ -211,25 +153,22 @@ void DetectorConstruction::DefineMaterials()
     propLYSO->AddConstProperty("FASTTIMECONSTANT", 0.09*ns);
     propLYSO->AddConstProperty("SlOWTIMECONSTANT", 41*ns);
     propLYSO->AddConstProperty("YIELDRATIO", 1.0);
-
     propLYSO->AddProperty("ABSLENGTH", eLYSO, aLYSO, nLYSO);
     propLYSO->AddProperty("RINDEX", eLYSO, rLYSO, nLYSO);
     // Wavelength to relative light output //TODO check this
     propLYSO->AddProperty("FASTCOMPONENT", eLYSO, lLYSO, nLYSO);
 
-    LYSO->SetMaterialPropertiesTable(propLYSO);
-
+    fCrystalMaterial->SetMaterialPropertiesTable(propLYSO);
     //Set the birks constant for LYSO // TODO check this
-    LYSO->GetIonisation()->SetBirksConstant(0.0076*mm/MeV);
+    fCrystalMaterial->GetIonisation()->SetBirksConstant(0.0076*mm/MeV);
 
-    //TODO: Wrapping material? Surface definition for reflections?
+    G4double rAir[nLYSO] = { 1.0 };
+    G4MaterialPropertiesTable* mpt = new G4MaterialPropertiesTable();
+    mpt->AddProperty("RINDEX", eLYSO, rAir, nLYSO);
 
-    fDefaultMaterial = G4Material::GetMaterial("G4_AIR");
-    fCrystalMaterial = G4Material::GetMaterial("LYSO");
-    fGlassMaterial = G4Material::GetMaterial("G4_Pyrex_Glass");
-    fFoilMaterial = G4Material::GetMaterial("polystyrole");
+    fDefaultMaterial->SetMaterialPropertiesTable(mpt);
 
-    if ( not fDefaultMaterial || not fCrystalMaterial ) {
+    if ( not fDefaultMaterial || not fCrystalMaterial || not fSiPMMaterial ) {
         G4ExceptionDescription msg;
         msg << "Cannot retrieve materials.";
         G4Exception("DetectorConstruction::DefineMaterials()",
@@ -255,73 +194,55 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
     fWorldPhysical = new G4PVPlacement(0, G4ThreeVector(), fWorldLogical, "WorldBox", 0, false, 0, fCheckOverlaps);
 
     //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-    // Calorimeter Box
-    auto caloBox = new G4Box("CalorimeterBox", fCaloSizeXY/2, fCaloSizeXY/2, fCaloDepth/2);
-    // Calorimeter logical volume
-    fCaloLogical = new G4LogicalVolume(caloBox, fDefaultMaterial, "CalorimeterBoxLV");
-    // Calorimeter physical volume
-    fCaloPhysical = new G4PVPlacement(0, G4ThreeVector(fCaloSizeXY/2., fCaloSizeXY/2., -fCaloDepth/2.), fCaloLogical, "CalorimeterBox", fWorldLogical, false, 0, fCheckOverlaps);
 
-    //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-    // Glass at the back of the crystals
-    auto glassBox = new G4Box("GlassBox", fCaloSizeXY/2, fCaloSizeXY/2, fGlassDepth/2);
-    // Crystal logical volume
-    auto fGlassLogical = new G4LogicalVolume(glassBox, fGlassMaterial, "GlassBoxLV");
-    auto fGlassPhysical = new G4PVPlacement(0, G4ThreeVector(0, 0, -fCaloDepth/2. + fGlassDepth/2.), fGlassLogical, "GlassBox", fCaloLogical, false, 0, fCheckOverlaps);
+    // BuildCrystalandSiPM();
 
-    //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-    auto crystalFakeBox = new G4Box("CrystalFakeBox", fCaloSizeXY/2, fCaloSizeXY/2, fCrystalDepth/2);
-    auto fcrystalFakeBoxLogical = new G4LogicalVolume(crystalFakeBox, fDefaultMaterial, "CrystalFakeBoxLV");
-    auto fcrystalFakeBoxPhysical = new G4PVPlacement(0, G4ThreeVector(0, 0, fGlassDepth/2), fcrystalFakeBoxLogical, "CrystalFakeBox", fCaloLogical, false, 0, fCheckOverlaps);
+    //Crystal
+    auto Crystal = new G4Box("Crystal", fCrystalLengthXY/2, fCrystalLengthXY/2, fCrystalDepth/2);
+    fCrystalLogical = new G4LogicalVolume(Crystal, fCrystalMaterial, "CrystalLV");
+    fCrystalPhysical = new G4PVPlacement(0, G4ThreeVector(0, 0, -fCrystalDepth/2), fCrystalLogical, "Crystal", fWorldLogical, false, 0, fCheckOverlaps);
 
-    //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-    // Crystal Box
-    auto crystalBox = new G4Box("CrystalBox", fCrystalLengthXY/2, fCrystalLengthXY/2, fCrystalDepth/2);
-    // Crystal logical volume
-    fCrystalLogical = new G4LogicalVolume(crystalBox, fCrystalMaterial, "CrystalBoxLV");
-    G4VPVParameterisation* crystalParam = new CrystalParameterisation(fCrystalLengthXY-fFoilThickness, fCrystalDepth, -fCrystalLengthXY, -fCrystalLengthXY, 0);
-    // Crystal physical volume
-    fCrystalPhysical = new G4PVParameterised("CrystalBox", fCrystalLogical, fcrystalFakeBoxLogical, kUndefined, fNCrystal, crystalParam, true);
+    G4OpticalSurface* CrystalSurface = new G4OpticalSurface("CrystalSurface", glisur, polished, dielectric_dielectric, 1.0);
 
-    //Optical surface of the crystal assuming Tyvek and polished crystal
-    G4OpticalSurface* OpSurfaceCrystal = new G4OpticalSurface("CrystalSurface");
-    OpSurfaceCrystal->SetType(dielectric_dielectric);
-    OpSurfaceCrystal->SetModel(glisur);
-    OpSurfaceCrystal->SetFinish(polished);
-    new G4LogicalSkinSurface("CrystalSurface", fCrystalLogical, OpSurfaceCrystal);
+    G4MaterialPropertiesTable* crystalSurfaceProperty = new G4MaterialPropertiesTable();
+    G4int nbins = 1;
+    G4double p_crystal[] = { 2.8 *eV };
+    G4double refl_crystal[] = { 1. };
+    G4double effi_crystal[] = { 0. };
+    crystalSurfaceProperty->AddProperty("REFLECTIVITY", p_crystal, refl_crystal, nbins);
+    crystalSurfaceProperty->AddProperty("EFFICIENCY", p_crystal, effi_crystal, nbins);
+    CrystalSurface->SetMaterialPropertiesTable(crystalSurfaceProperty);
 
-    //Surface between the crystal and the glass
-    G4OpticalSurface* OpSurfaceGlass = new G4OpticalSurface("GlassSurface");
-    OpSurfaceGlass->SetType(dielectric_dielectric);
-    OpSurfaceGlass->SetModel(glisur);
-    OpSurfaceGlass->SetFinish(polished);
-    new G4LogicalSkinSurface("GlassSurface", fGlassPhysical, OpSurfaceGlass);
+    new G4LogicalSkinSurface("CrystalSurface", fCrystalLogical, CrystalSurface);
 
-    //OpticalAirSurface
-    const G4int num = 1;
-    G4double ephoton[num] = { 2.8 *eV };
-    G4double reflectivity[num] = { 0. };
-    G4double efficiency[num]   = { 1.0 };
+    auto SiPM = new G4Box("SiPM", fSiPMSize/2, fSiPMSize/2, fSiPMDepth);
+    auto logicSiPM = new G4LogicalVolume(SiPM, fDefaultMaterial, "SiPMLV");
+    new G4PVPlacement(0, G4ThreeVector(0., 0., -fCrystalDepth-fSiPMDepth), logicSiPM, "SiPM", fWorldLogical, false, 0, fCheckOverlaps);
 
-    G4MaterialPropertiesTable *myST2 = new G4MaterialPropertiesTable();
-    myST2->AddProperty("REFLECTIVITY", ephoton, reflectivity, num);
-    myST2->AddProperty("EFFICIENCY", ephoton, efficiency, num);
-    OpSurfaceGlass->SetMaterialPropertiesTable(myST2);
+    auto PhotonDet = new G4Box("PhotonDet", fSiPMSize/2, fSiPMSize/2, fSiPMDepth/2);
+    auto logicPhotonDet = new G4LogicalVolume(PhotonDet, fSiPMMaterial, "PhotonDetLV");
+    new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
+
+    // PhotonDet Surface Properties
+    G4OpticalSurface* photonDetSurface = new G4OpticalSurface("PhotonDetSurface", glisur, ground, dielectric_metal, 1.0);
+
+    G4MaterialPropertiesTable* photonDetSurfaceProperty = new G4MaterialPropertiesTable();
+    // G4int nbins = 1;
+    G4double p_mppc[] = { 2.8 *eV };
+    G4double refl_mppc[] = { 0 };
+    G4double effi_mppc[] = { 1 };
+    photonDetSurfaceProperty->AddProperty("REFLECTIVITY", p_mppc, refl_mppc, nbins);
+    photonDetSurfaceProperty->AddProperty("EFFICIENCY", p_mppc, effi_mppc, nbins);
+    photonDetSurface->SetMaterialPropertiesTable(photonDetSurfaceProperty);
+
+    new G4LogicalSkinSurface("PhotonDetSurface",logicPhotonDet, photonDetSurface);
 
     // Visualization attributes
     fWorldLogical->SetVisAttributes (G4VisAttributes::GetInvisible());
 
-    auto CaloVisAtt = new G4VisAttributes(G4Colour(0.5,0.,0.));
-    CaloVisAtt->SetVisibility(true);
-    fCaloLogical->SetVisAttributes(CaloVisAtt);
-
-    auto CrystalVisAtt = new G4VisAttributes(G4Colour(1.0,1.0,1.0));
+    auto CrystalVisAtt = new G4VisAttributes(G4Colour(0.0,1.0,1.0));
     CrystalVisAtt->SetVisibility(true);
     fCrystalLogical->SetVisAttributes(CrystalVisAtt);
-
-    auto GlassVisAtt = new G4VisAttributes(G4Colour(1.0,1.0,0.0));
-    GlassVisAtt->SetVisibility(true);
-    fGlassLogical->SetVisAttributes(GlassVisAtt);
 
     PrintParameters();
 
@@ -353,5 +274,45 @@ void DetectorConstruction::ConstructSDandField()
         G4SDManager::GetSDMpointer()->AddNewDetector(SD);
         fSD.Put(SD);
     }
-    SetSensitiveDetector("GlassBoxLV", fSD.Get(), true);
+    SetSensitiveDetector("PhotonDetLV", fSD.Get(), true);
+}
+
+void DetectorConstruction::BuildCrystalandSiPM()
+{
+    //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+    // Volume coated with TiO2 containing the crystal
+    auto CrystalVolume = new G4Box("CrystalVolume", fCrystalLengthXY/2, fCrystalLengthXY/2, fCaloDepth/2);
+    auto LogicCrystalVolume = new G4LogicalVolume(CrystalVolume, fDefaultMaterial, "CrystalVolumeLV");
+
+    //Crystal
+    auto Crystal = new G4Box("Crystal", fCrystalLengthXY/2, fCrystalLengthXY/2, fCrystalDepth/2);
+    fCrystalLogical = new G4LogicalVolume(Crystal, fCrystalMaterial, "CrystalLV");
+    fCrystalPhysical = new G4PVPlacement(0, G4ThreeVector(0, 0, fSiPMDepth), fCrystalLogical, "Crystal", LogicCrystalVolume, false, 0, fCheckOverlaps);
+
+    auto SiPM = new G4Box("SiPM", fSiPMSize/2, fSiPMSize/2, fSiPMDepth);
+    auto logicSiPM = new G4LogicalVolume(SiPM, fDefaultMaterial, "SiPMLV");
+    new G4PVPlacement(0, G4ThreeVector(0., 0., -fCrystalDepth/2), logicSiPM, "SiPM", LogicCrystalVolume, false, 0, fCheckOverlaps);
+
+    auto PhotonDet = new G4Box("PhotonDet", fSiPMSize/2, fSiPMSize/2, fSiPMDepth/2);
+    auto logicPhotonDet = new G4LogicalVolume(PhotonDet, fSiPMMaterial, "PhotonDetLV");
+    new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
+
+    // PhotonDet Surface Properties
+    G4OpticalSurface* photonDetSurface = new G4OpticalSurface("PhotonDetSurface", glisur, ground, dielectric_metal, 1.0);
+
+    G4MaterialPropertiesTable* photonDetSurfaceProperty = new G4MaterialPropertiesTable();
+    G4int nbins = 1;
+    G4double p_mppc[] = { 2.8 *eV };
+    G4double refl_mppc[] = { 0 };
+    G4double effi_mppc[] = { 1 };
+    photonDetSurfaceProperty->AddProperty("REFLECTIVITY", p_mppc, refl_mppc, nbins);
+    photonDetSurfaceProperty->AddProperty("EFFICIENCY", p_mppc, effi_mppc, nbins);
+    photonDetSurface->SetMaterialPropertiesTable(photonDetSurfaceProperty);
+
+    new G4LogicalSkinSurface("PhotonDetSurface",logicPhotonDet, photonDetSurface);
+
+    //Replicate the full volume crystal + SiPM
+    G4VPVParameterisation* crystalParam = new CrystalParameterisation(fCrystalLengthXY, fCaloDepth, -fCrystalLengthXY, -fCrystalLengthXY, 0);
+    // Parametrised volume
+    fCrystalPhysical = new G4PVParameterised("CrystalVolumeParam", LogicCrystalVolume, fCaloLogical, kUndefined, fNCrystal, crystalParam, true);
 }

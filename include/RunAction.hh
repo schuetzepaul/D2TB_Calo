@@ -22,8 +22,8 @@ class RunAction : public G4UserRunAction
     RunAction();
     virtual ~RunAction();
 
-    virtual void BeginOfRunAction(const G4Run* aRun);
-    virtual void   EndOfRunAction(const G4Run* aRun);
+    virtual void BeginOfRunAction(const G4Run*);
+    virtual void   EndOfRunAction(const G4Run*);
 
 private:
     G4Timer* fTimer;

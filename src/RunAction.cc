@@ -13,8 +13,7 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 RunAction::RunAction()
-: G4UserRunAction(),
-fTimer(0)
+: fTimer(0)
 {
     fTimer = new G4Timer;
 }
@@ -31,11 +30,16 @@ RunAction::~RunAction()
 void RunAction::BeginOfRunAction(const G4Run* aRun)
 {
     //to be sure to generate different events!
+    G4cout << "*******************" << G4endl;
+    G4cout << "*** AUTOSEED ON ***" << G4endl;
+    G4cout << "*******************" << G4endl;
+
     long seeds[2];
     long systime = time(NULL);
     seeds[0] = systime;
     seeds[1] = systime * G4UniformRand();
     G4Random::setTheSeeds(seeds);
+    G4Random::showEngineStatus();
 
     G4cout << "### Run " << aRun->GetRunID() << " start." << G4endl;
     fTimer->Start();
@@ -46,8 +50,7 @@ void RunAction::BeginOfRunAction(const G4Run* aRun)
 void RunAction::EndOfRunAction(const G4Run* aRun)
 {
     fTimer->Stop();
-    G4cout << "number of event = " << aRun->GetNumberOfEvent()
-    << " " << *fTimer << G4endl;
+    G4cout << "Number of event = " << aRun->GetNumberOfEvent() << " " << *fTimer << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

@@ -7,9 +7,6 @@
 #include "G4UserEventAction.hh"
 #include "globals.hh"
 
-#include <unordered_map>
-#include <string>
-
 /// Event action class
 ///
 /// In EndOfEventAction(), it prints the accumulated quantities of the energy
@@ -22,14 +19,12 @@ public:
     EventAction();
     virtual ~EventAction();
 
-    virtual void  BeginOfEventAction(const G4Event* event);
-    virtual void    EndOfEventAction(const G4Event* event);
+    virtual void  BeginOfEventAction(const G4Event*);
+    virtual void    EndOfEventAction(const G4Event*);
 
 private:
-    // methods
-    void PrintEventStatistics(const G4Event* event) const;
-
     //members
+    G4int fVerboseLevel;
 
 };
 

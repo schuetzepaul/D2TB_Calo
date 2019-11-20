@@ -8,16 +8,19 @@
 
 #include "G4Event.hh"
 #include "G4RunManager.hh"
+#include "G4SDManager.hh"
 
 #include "G4ProcessManager.hh"
 #include "G4OpBoundaryProcess.hh"
+
+#include "PhotonDetSD.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 SteppingAction::SteppingAction()
 : G4UserSteppingAction()
 {
-    fBounceLimit = 100000;
+    fBounceLimit = 10000;
     fOpProcess = NULL;
     ResetCounters();
 }
@@ -64,32 +67,71 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
     }
 
     switch (theStatus) {
-
-    case FresnelReflection:
-        fCounterBounce++;
-        return;
-
-    case TotalInternalReflection:
-        // Kill the track if it's number of bounces exceeded the limit
-        if (fBounceLimit > 0 && fCounterBounce >= fBounceLimit)
+        // Exiting the crystal
+    case FresnelRefraction:
         {
-            theTrack->SetTrackStatus(fStopAndKill);
-            ResetCounters();
-            G4cout << "\n Bounce Limit Exceeded" << G4endl;
+            // G4cout << "Case FresnelRefraction" << G4endl;
+            // G4cout << "thePrePVname " << thePrePVname << G4endl;
+            // G4cout << "thePostPVname " << thePostPVname << G4endl;
+
+            //Kill the track that exits the crystal to the world volume
+            G4bool isWorld = false;
+            isWorld = thePostPVname == "WorldBox";
+
+            if(isWorld) {
+                theTrack->SetTrackStatus(fStopAndKill);
+                ResetCounters();
+                return;
+            }
             return;
         }
-        break;
+    case SameMaterial:
+        {
+            // G4cout << "Case SameMaterial" << G4endl;
+            // G4cout << "thePrePVname " << thePrePVname << G4endl;
+            // G4cout << "thePostPVname " << thePostPVname << G4endl;
+            return;
+        }
+        //Internal Reflections
+    case TotalInternalReflection:
+        {
+            // G4cout << "Case TotalInternalReflection" << G4endl;
+            // Kill the track if it's number of bounces exceeded the limit
+            if (fBounceLimit > 0 && fCounterBounce >= fBounceLimit)
+            {
+                theTrack->SetTrackStatus(fStopAndKill);
+                ResetCounters();
+                G4cout << "\n Bounce Limit Exceeded" << G4endl;
+                return;
+            }
 
+            fCounterBounce++;
+            break;
+        }
+    case FresnelReflection:
+        {
+            // G4cout << "Case FresnelReflection" << G4endl;
+            fCounterBounce++;
+            return;
+        }
         // Detected by a detector
     case Detection:
-        if ( thePostPVname == "GlassBox" ) {
-            G4cout << "Arrived at the glass" << G4endl;
-            // Stop Tracking when it hits the detector's surface
-            ResetCounters();
-            theTrack->SetTrackStatus(fStopAndKill);
-            return;
+        {
+            if ( thePostPVname == "PhotonDet" ) {
+
+                G4SDManager* SDman = G4SDManager::GetSDMpointer();
+                G4String SDname="d2tb/PhotonDet";
+                PhotonDetSD* mppcSD = (PhotonDetSD*)SDman->FindSensitiveDetector(SDname);
+
+                if (mppcSD) mppcSD->ProcessHits_constStep(theStep, NULL);
+
+                // Stop Tracking when it hits the detector's surface
+                ResetCounters();
+                theTrack->SetTrackStatus(fStopAndKill);
+                return;
+            }
+            break;
         }
-        break;
 
     default: break;
 

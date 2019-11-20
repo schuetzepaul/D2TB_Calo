@@ -34,6 +34,9 @@ include(${Geant4_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include
 ${ROOT_INCLUDE_DIRS})
 
+set(CMAKE_CXX_FLAGS "-W -Wall -pedantic -Wno-non-virtual-dtor -Wno-long-long -Wwrite-strings -Wpointer-arith -Wno-variadic-macros -Wshadow -pipe -DG4USE_STD11 -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1 -std=c++1z")
+message(STATUS "CXX Flags:=${CMAKE_CXX_FLAGS}")
+
 # Build the dictionary for the i/o classes.
 ROOT_GENERATE_DICTIONARY(G__root_io LINKDEF include/LinkDef.hh)
 # Build the library.

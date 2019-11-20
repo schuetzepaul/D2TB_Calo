@@ -5,7 +5,7 @@
 /d2tb/det/filename D2TB.root
 
 # Set the number of crystals
-/d2tb/det/NumberOfCrystals 9
+/d2tb/det/NumberOfCrystals 1
 
 # Set the crystal XY length
 /d2tb/det/CrystalLengthXY 3 cm

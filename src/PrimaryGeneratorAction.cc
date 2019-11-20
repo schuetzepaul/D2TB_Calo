@@ -16,10 +16,10 @@ fGPSParticleGun(nullptr)
 {
     fG4ParticleGun  = new G4ParticleGun(1);
     G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
-    fG4ParticleGun->SetParticleDefinition(particleTable->FindParticle("e-"));
+    fG4ParticleGun->SetParticleDefinition(particleTable->FindParticle("gamma"));
     //Default energy,position,momentum
-    fG4ParticleGun->SetParticleEnergy(1.*GeV);
-    fG4ParticleGun->SetParticlePosition(G4ThreeVector(4.5*cm , 4.5*cm, -10.0*cm));
+    fG4ParticleGun->SetParticleEnergy(1.*keV);
+    fG4ParticleGun->SetParticlePosition(G4ThreeVector(0*cm , 0*cm, -0.5*cm));
     fG4ParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,0.,1.));
 
     // fGPSParticleGun  = new G4GeneralParticleSource();

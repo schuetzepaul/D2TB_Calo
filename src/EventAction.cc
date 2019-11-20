@@ -12,7 +12,7 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 EventAction::EventAction()
-: G4UserEventAction()
+: fVerboseLevel(1)
 {
 
 }
@@ -24,31 +24,20 @@ EventAction::~EventAction()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void EventAction::PrintEventStatistics(const G4Event* event) const
+void EventAction::BeginOfEventAction(const G4Event* evt)
 {
-    // print event statistics
-    G4cout << G4endl;
-    G4cout << " ------------------------- " << G4endl;
-    G4cout << " For event " << event->GetEventID() << G4endl;
-    G4cout << " ------------------------- " << G4endl;
+    G4int evtNb = evt->GetEventID();
+
+    if(fVerboseLevel>0)
+    G4cout << "<<< Event " << evtNb << " started." << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void EventAction::BeginOfEventAction(const G4Event* /*event*/)
+void EventAction::EndOfEventAction(const G4Event* evt)
 {
-
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void EventAction::EndOfEventAction(const G4Event* event)
-{
-    auto eventID = event->GetEventID();
-    auto printModulo = G4RunManager::GetRunManager()->GetPrintProgress();
-    if ( ( printModulo > 0 ) && ( eventID % printModulo == 0 ) ) {
-        PrintEventStatistics(event);
-    }
+    if (fVerboseLevel>0)
+     G4cout << "<<< Event " << evt->GetEventID() << " ended." << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
