@@ -5,16 +5,19 @@
 /d2tb/det/filename D2TB.root
 
 # Set the number of crystals
-/d2tb/det/NumberOfCrystals 1
+/d2tb/det/NumberOfCrystals 9
 
 # Set the crystal XY length
-/d2tb/det/CrystalLengthXY 3 cm
+/d2tb/det/CrystalSizeXY 3 cm
 
 # Set the crystal depth
 /d2tb/det/CrystalDepth 10 cm
 
-# Modulo for printing events
-/run/printProgress 1
+# Set the SiPM XY length
+/d2tb/det/SiPMSizeXY 1 mm
+
+# Set the SiPM depth
+/d2tb/det/SiPMDepth 0.1 mm
 
 # Initialize kernel
 /run/initialize

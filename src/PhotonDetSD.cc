@@ -13,8 +13,8 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 PhotonDetSD::PhotonDetSD(G4String name)
-: G4VSensitiveDetector(name)
-// fPhotonDetHitCollection(0)
+: G4VSensitiveDetector(name),
+fPhotonDetHitCollection(0)
 {
     collectionName.insert("PhotonDetHitCollection");
 }
@@ -27,11 +27,11 @@ PhotonDetSD::~PhotonDetSD() { }
 
 void PhotonDetSD::Initialize(G4HCofThisEvent* HCE)
 {
-    // fPhotonDetHitCollection = new PhotonDetHitsCollection(SensitiveDetectorName, collectionName[0]);
-    // //Store collection with event and keep ID
-    // static G4int HCID = -1;
-    // if (HCID<0) HCID = GetCollectionID(0);
-    // HCE->AddHitsCollection( HCID, fPhotonDetHitCollection );
+    fPhotonDetHitCollection = new PhotonDetHitsCollection(SensitiveDetectorName, collectionName[0]);
+    //Store collection with event and keep ID
+    static G4int HCID = -1;
+    if (HCID<0) HCID = GetCollectionID(0);
+    HCE->AddHitsCollection( HCID, fPhotonDetHitCollection );
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -67,7 +67,7 @@ G4bool PhotonDetSD::ProcessHits_constStep(const G4Step* aStep, G4TouchableHistor
     photonArrive = theTouchable->GetHistory()->GetTopTransform().TransformPoint(photonArrive);
 
     // Creating the hit and add it to the collection
-    // fPhotonDetHitCollection->insert(new PhotonDetHit(photonArrive, arrivalTime));
+    fPhotonDetHitCollection->insert(new PhotonDetHit(photonArrive, arrivalTime));
 
     return true;
 }

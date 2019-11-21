@@ -20,7 +20,7 @@
 SteppingAction::SteppingAction()
 : G4UserSteppingAction()
 {
-    fBounceLimit = 10000;
+    fBounceLimit = 100000;
     fOpProcess = NULL;
     ResetCounters();
 }
@@ -83,19 +83,20 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
                 ResetCounters();
                 return;
             }
-            return;
+            break;
         }
     case SameMaterial:
         {
             // G4cout << "Case SameMaterial" << G4endl;
             // G4cout << "thePrePVname " << thePrePVname << G4endl;
             // G4cout << "thePostPVname " << thePostPVname << G4endl;
-            return;
+            break;
         }
         //Internal Reflections
     case TotalInternalReflection:
         {
             // G4cout << "Case TotalInternalReflection" << G4endl;
+            fCounterBounce++;
             // Kill the track if it's number of bounces exceeded the limit
             if (fBounceLimit > 0 && fCounterBounce >= fBounceLimit)
             {
@@ -105,14 +106,13 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
                 return;
             }
 
-            fCounterBounce++;
             break;
         }
     case FresnelReflection:
         {
             // G4cout << "Case FresnelReflection" << G4endl;
             fCounterBounce++;
-            return;
+            break;
         }
         // Detected by a detector
     case Detection:
@@ -134,7 +134,6 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
         }
 
     default: break;
-
     }
 
     // Check for absorbed photons

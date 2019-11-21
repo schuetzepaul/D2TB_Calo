@@ -33,11 +33,11 @@ private:
     G4UIdirectory*                  fDirectory;
     G4UIcmdWithAnInteger*           fVerboseCmd;
     G4UIcmdWithAString*             fFilenameCmd;
-    G4UIcmdWithADoubleAndUnit*      fStepSizeCmd;
     G4UIcmdWithAnInteger*           fNCrystalCmd;
-    G4UIcmdWithADoubleAndUnit*      fCrystalLengthXYCmd;
+    G4UIcmdWithADoubleAndUnit*      fCrystalSizeXYCmd;
     G4UIcmdWithADoubleAndUnit*      fCrystalDepthCmd;
-
+    G4UIcmdWithADoubleAndUnit*      fSiPMSizeXYCmd;
+    G4UIcmdWithADoubleAndUnit*      fSiPMDepthCmd;
 };
 
 

@@ -23,51 +23,66 @@ fDetector(det),
 fDirectory(0),
 fVerboseCmd(0),
 fFilenameCmd(0),
-fStepSizeCmd(0),
 fNCrystalCmd(0),
-fCrystalLengthXYCmd(0),
-fCrystalDepthCmd(0)
+fCrystalSizeXYCmd(0),
+fCrystalDepthCmd(0),
+fSiPMSizeXYCmd(0),
+fSiPMDepthCmd(0)
 {
     fDirectory = new G4UIdirectory("/d2tb/det/");
-    fDirectory->SetGuidance("UI commands of this example");
+    fDirectory->SetGuidance(" Geometry Setup ");
 
     fVerboseCmd = new G4UIcmdWithAnInteger("/d2tb/det/verbose",this);
     fVerboseCmd->SetGuidance("Set verbosity level");
     fVerboseCmd->SetParameterName("verbose", false);
-    fVerboseCmd->AvailableForStates(G4State_PreInit);
+    fVerboseCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
     fVerboseCmd->SetRange("verbose>=0");
+    fVerboseCmd->SetToBeBroadcasted(false);
 
     fFilenameCmd = new G4UIcmdWithAString("/d2tb/det/filename",this);
     fFilenameCmd->SetGuidance("Set filename of the rootfile.");
-    fFilenameCmd->SetParameterName("value", false);
-    fFilenameCmd->AvailableForStates(G4State_PreInit);
-
-    fStepSizeCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/stepMax",this);
-    fStepSizeCmd->SetGuidance("Set the maximum step size.");
-    fStepSizeCmd->SetParameterName("value", false);
-    fStepSizeCmd->SetUnitCategory("Length");
-    fStepSizeCmd->AvailableForStates(G4State_PreInit);
-    fStepSizeCmd->SetRange("value>0");
+    fFilenameCmd->SetParameterName("filename", false);
+    fFilenameCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fFilenameCmd->SetToBeBroadcasted(false);
 
     fNCrystalCmd = new G4UIcmdWithAnInteger("/d2tb/det/NumberOfCrystals",this);
     fNCrystalCmd->SetGuidance("Set number of crystals.");
-    fNCrystalCmd->SetParameterName("value", false);
-    fNCrystalCmd->AvailableForStates(G4State_PreInit);
-    fNCrystalCmd->SetRange("value>0");
+    fNCrystalCmd->SetParameterName("NumberOfCrystals", false);
+    fNCrystalCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fNCrystalCmd->SetRange("NumberOfCrystals>0 && NumberOfCrystals<=9");
+    fNCrystalCmd->SetToBeBroadcasted(false);
 
-    fCrystalLengthXYCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/CrystalLengthXY",this);
-    fCrystalLengthXYCmd->SetGuidance("Set the crystal size in the XY plane.");
-    fCrystalLengthXYCmd->SetParameterName("value", false);
-    fCrystalLengthXYCmd->SetUnitCategory("Length");
-    fCrystalLengthXYCmd->AvailableForStates(G4State_PreInit);
-    fCrystalLengthXYCmd->SetRange("value>0");
+    fCrystalSizeXYCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/CrystalSizeXY",this);
+    fCrystalSizeXYCmd->SetGuidance("Set the crystal size in the XY plane.");
+    fCrystalSizeXYCmd->SetParameterName("CrystalSizeXY", false);
+    fCrystalSizeXYCmd->SetUnitCategory("Length");
+    fCrystalSizeXYCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fCrystalSizeXYCmd->SetRange("CrystalSizeXY>0");
+    fCrystalSizeXYCmd->SetToBeBroadcasted(false);
 
     fCrystalDepthCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/CrystalDepth",this);
     fCrystalDepthCmd->SetGuidance("Set the crystal size along the beam.");
-    fCrystalDepthCmd->SetParameterName("value", false);
+    fCrystalDepthCmd->SetParameterName("CrystalDepth", false);
     fCrystalDepthCmd->SetUnitCategory("Length");
-    fCrystalDepthCmd->AvailableForStates(G4State_PreInit);
-    fCrystalDepthCmd->SetRange("value>0");
+    fCrystalDepthCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fCrystalDepthCmd->SetRange("CrystalDepth>0");
+    fCrystalDepthCmd->SetToBeBroadcasted(false);
+
+    fSiPMSizeXYCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/SiPMSizeXY",this);
+    fSiPMSizeXYCmd->SetGuidance("Set the sipm size in the XY plane.");
+    fSiPMSizeXYCmd->SetParameterName("SiPMSizeXY", false);
+    fSiPMSizeXYCmd->SetUnitCategory("Length");
+    fSiPMSizeXYCmd->SetRange("SiPMSizeXY>0. && SiPMSizeXY<=2.");
+    fSiPMSizeXYCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fSiPMSizeXYCmd->SetToBeBroadcasted(false);
+
+    fSiPMDepthCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/SiPMDepth",this);
+    fSiPMDepthCmd->SetGuidance("Set the sipm size along the beam.");
+    fSiPMDepthCmd->SetParameterName("SiPMDepth", false);
+    fSiPMDepthCmd->SetUnitCategory("Length");
+    fSiPMDepthCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fSiPMDepthCmd->SetRange("SiPMDepth>0. && SiPMDepth<=1");
+    fSiPMDepthCmd->SetToBeBroadcasted(false);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -77,10 +92,11 @@ DetectorMessenger::~DetectorMessenger()
     delete fDirectory;
     delete fVerboseCmd;
     delete fFilenameCmd;
-    delete fStepSizeCmd;
     delete fNCrystalCmd;
-    delete fCrystalLengthXYCmd;
+    delete fCrystalSizeXYCmd;
     delete fCrystalDepthCmd;
+    delete fSiPMSizeXYCmd;
+    delete fSiPMDepthCmd;
 }
 
 void DetectorMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
@@ -91,17 +107,20 @@ void DetectorMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
     else if( command == fFilenameCmd ) {
         fDetector->SetROOTFilename(newValue);
     }
-    else if( command == fStepSizeCmd ) {
-        fDetector->SetMaxStepSize(fStepSizeCmd->GetNewDoubleValue(newValue));
-    }
     else if( command == fNCrystalCmd ) {
         fDetector->SetNCrystal(fNCrystalCmd->GetNewIntValue(newValue));
     }
-    else if( command == fCrystalLengthXYCmd ) {
-        fDetector->SetCrystalLengthXY(fCrystalLengthXYCmd->GetNewDoubleValue(newValue));
+    else if( command == fCrystalSizeXYCmd ) {
+        fDetector->SetCrystalSizeXY(fCrystalSizeXYCmd->GetNewDoubleValue(newValue));
     }
     else if( command == fCrystalDepthCmd ) {
         fDetector->SetCrystalDepth(fCrystalDepthCmd->GetNewDoubleValue(newValue));
+    }
+    else if( command == fSiPMSizeXYCmd ) {
+        fDetector->SetSiPMSizeXY(fSiPMSizeXYCmd->GetNewDoubleValue(newValue));
+    }
+    else if( command == fSiPMDepthCmd ) {
+        fDetector->SetSiPMDepth(fSiPMDepthCmd->GetNewDoubleValue(newValue));
     }
 }
 
@@ -116,17 +135,20 @@ G4String DetectorMessenger::GetCurrentValue(G4UIcommand * command)
     else if( command == fFilenameCmd ) {
         ans=fFilenameCmd->ConvertToString(fDetector->GetROOTFilename());
     }
-    else if( command == fStepSizeCmd ) {
-        ans=fStepSizeCmd->ConvertToString(fDetector->GetMaxStepSize());
-    }
     else if( command == fNCrystalCmd ) {
         ans=fNCrystalCmd->ConvertToString(fDetector->GetNCrystal());
     }
-    else if( command == fCrystalLengthXYCmd ) {
-        ans=fCrystalLengthXYCmd->ConvertToString(fDetector->GetCrystalLengthXY());
+    else if( command == fCrystalSizeXYCmd ) {
+        ans=fCrystalSizeXYCmd->ConvertToString(fDetector->GetCrystalSizeXY());
     }
     else if( command == fCrystalDepthCmd ) {
         ans=fCrystalDepthCmd->ConvertToString(fDetector->GetCrystalDepth());
+    }
+    else if( command == fSiPMSizeXYCmd ) {
+        ans=fSiPMSizeXYCmd->ConvertToString(fDetector->GetSiPMSizeXY());
+    }
+    else if( command == fSiPMDepthCmd ) {
+        ans=fSiPMDepthCmd->ConvertToString(fDetector->GetSiPMDepth());
     }
 
     return ans;

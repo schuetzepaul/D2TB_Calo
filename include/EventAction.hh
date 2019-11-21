@@ -25,6 +25,7 @@ public:
 private:
     //members
     G4int fVerboseLevel;
+    G4int fMPPCCollID;
 
 };
 

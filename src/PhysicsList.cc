@@ -51,7 +51,7 @@ G4ThreadLocal G4OpBoundaryProcess* PhysicsList::fBoundaryProcess = 0;
 PhysicsList::PhysicsList()
 : G4VUserPhysicsList()
 {
-    fDefaultCutValue = 1.0*mm;
+    fDefaultCutValue = 0.7*mm;
     fMessenger = new PhysicsListMessenger(this);
 }
 

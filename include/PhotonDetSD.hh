@@ -1,7 +1,7 @@
 #ifndef PhotonDetSD_h
 #define PhotonDetSD_h 1
 
-// #include "PhotonDetHit.hh"
+#include "PhotonDetHit.hh"
 
 #include "G4VSensitiveDetector.hh"
 
@@ -24,7 +24,7 @@ class PhotonDetSD : public G4VSensitiveDetector
 
   private:
 
-    // PhotonDetHitsCollection* fPhotonDetHitCollection;
+    PhotonDetHitsCollection* fPhotonDetHitCollection;
 };
 
 #endif

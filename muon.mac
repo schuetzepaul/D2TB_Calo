@@ -1,3 +1,30 @@
+# Verbose detector construction
+/d2tb/det/verbose 2
+
+# Set the name of the output rootfile
+/d2tb/det/filename D2TB.root
+
+# Set the number of crystals
+/d2tb/det/NumberOfCrystals 9
+
+# Set the crystal XY length
+/d2tb/det/CrystalSizeXY 3 cm
+
+# Set the crystal depth
+/d2tb/det/CrystalDepth 10 cm
+
+# Set the SiPM XY length
+/d2tb/det/SiPMSizeXY 1 mm
+
+# Set the SiPM depth
+/d2tb/det/SiPMDepth 0.1 mm
+
+# Initialize kernel
+/run/initialize
+
+# Set the verbose for the physics list
+/d2tb/phys/verbose 0
+
 /gun/particle e-
 /gun/energy 1 GeV
 /gun/position 0 0 -5 cm
