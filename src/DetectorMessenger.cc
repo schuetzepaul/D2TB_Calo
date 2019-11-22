@@ -72,7 +72,7 @@ fSiPMDepthCmd(0)
     fSiPMSizeXYCmd->SetGuidance("Set the sipm size in the XY plane.");
     fSiPMSizeXYCmd->SetParameterName("SiPMSizeXY", false);
     fSiPMSizeXYCmd->SetUnitCategory("Length");
-    fSiPMSizeXYCmd->SetRange("SiPMSizeXY>0. && SiPMSizeXY<=2.");
+    fSiPMSizeXYCmd->SetRange("SiPMSizeXY>0.");
     fSiPMSizeXYCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
     fSiPMSizeXYCmd->SetToBeBroadcasted(false);
 

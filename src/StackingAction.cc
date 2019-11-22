@@ -32,7 +32,10 @@ StackingAction::~StackingAction()
 
 G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track* aTrack)
 {
-    if(aTrack->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition())     // particle is optical photon
+    if (aTrack->GetParentID() == 0) return fUrgent;
+    
+    // particle is optical photon
+    if(aTrack->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition())
     {
         if(aTrack->GetParentID() > 0)     // particle is secondary
         {
@@ -48,13 +51,13 @@ G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track* aTrac
 
 void StackingAction::NewStage()
 {
-  G4cout << "Number of Scintillation photons produced in this event : "
-         << fScintillationCounter << G4endl;
+    G4cout << "Number of Scintillation photons produced in this event : "
+    << fScintillationCounter << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void StackingAction::PrepareNewEvent()
 {
-  fScintillationCounter = 0;
+    fScintillationCounter = 0;
 }

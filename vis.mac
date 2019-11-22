@@ -25,6 +25,8 @@
 # Add trajectories to the current scene
 /vis/scene/add/trajectories smooth
 
+/vis/scene/add/hits
+
 # Requests viewer to accumulate hits, tracks, etc. at end of event.
 # detector remains or is redrawn.
 /vis/scene/endOfEventAction refresh

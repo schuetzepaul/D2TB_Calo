@@ -11,10 +11,10 @@
 /d2tb/det/CrystalSizeXY 3 cm
 
 # Set the crystal depth
-/d2tb/det/CrystalDepth 10 cm
+/d2tb/det/CrystalDepth 30 cm
 
 # Set the SiPM XY length
-/d2tb/det/SiPMSizeXY 1 mm
+/d2tb/det/SiPMSizeXY 3 mm
 
 # Set the SiPM depth
 /d2tb/det/SiPMDepth 0.1 mm
@@ -24,6 +24,9 @@
 
 # Set the verbose for the physics list
 /d2tb/phys/verbose 0
+
+# Set the max step size for the physics processes
+#/d2tb/phys/StepMaxSize 10 um
 
 # Visualization setting
 /control/execute vis.mac

@@ -26,7 +26,7 @@ public:
 
     virtual G4VPhysicalVolume* Construct();
     virtual void ConstructSDandField();
-    
+
     void SetVerboseLevel(G4int);
     void SetROOTFilename(G4String);
     void SetNCrystal(G4int);
@@ -42,6 +42,7 @@ public:
     G4double GetCrystalDepth() const { return fCrystalDepth; }
     G4double GetSiPMSizeXY() const { return fSiPMSizeXY; }
     G4double GetSiPMDepth() const { return fSiPMDepth; }
+    G4double GetCrystalEnd();
 
 private:
     // methods

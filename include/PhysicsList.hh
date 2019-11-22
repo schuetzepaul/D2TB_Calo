@@ -11,6 +11,8 @@ class G4OpAbsorption;
 class G4OpRayleigh;
 class G4OpBoundaryProcess;
 
+class StepMax;
+
 class PhysicsList: public G4VUserPhysicsList
 {
 public:
@@ -30,14 +32,18 @@ public:
     void ConstructDecay();
     void ConstructEM();
     void ConstructOp();
+    void AddStepMax();
+    void AddLimiters();
 
     //for the Messenger
     void SetVerbose(G4int);
+    void SetStepMax(G4double);
 
 private:
 
     /// The messenger to control this class.
     PhysicsListMessenger* fMessenger;
+    StepMax* fStepMaxProcess;
     G4double fDefaultCutValue;
 
     static G4ThreadLocal G4int fVerboseLevel;

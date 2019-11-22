@@ -1,4 +1,5 @@
 #include "PhotonDetSD.hh"
+#include "UserTrackInformation.hh"
 
 #include "G4Track.hh"
 #include "G4ThreeVector.hh"
@@ -55,19 +56,21 @@ G4bool PhotonDetSD::ProcessHits_constStep(const G4Step* aStep, G4TouchableHistor
 
     // Find out information regarding the hit
     G4StepPoint* thePostPoint = aStep->GetPostStepPoint();
+    UserTrackInformation* trackInformation = (UserTrackInformation*)theTrack->GetUserInformation();
+    G4TouchableHistory* theTouchable = (G4TouchableHistory*)(thePostPoint->GetTouchable());
 
-    G4TouchableHistory* theTouchable
-    = (G4TouchableHistory*)(thePostPoint->GetTouchable());
-
+    //Physical volume of the hit
+    auto physical = theTouchable->GetVolume();
+    G4ThreeVector photonExit   = trackInformation->GetExitPosition();
     G4ThreeVector photonArrive = thePostPoint->GetPosition();
-    G4double      arrivalTime  = theTrack->GetGlobalTime();
+    G4double arrivalTime  = theTrack->GetGlobalTime();
 
     // Convert the global coordinate for arriving photons into
     // the local coordinate of the detector
-    photonArrive = theTouchable->GetHistory()->GetTopTransform().TransformPoint(photonArrive);
+    G4ThreeVector photonArriveLocal = theTouchable->GetHistory()->GetTopTransform().TransformPoint(photonArrive);
 
     // Creating the hit and add it to the collection
-    fPhotonDetHitCollection->insert(new PhotonDetHit(photonArrive, arrivalTime));
+    fPhotonDetHitCollection->insert(new PhotonDetHit(photonExit, photonArrive, photonArriveLocal, arrivalTime, physical->GetLogicalVolume()));
 
     return true;
 }

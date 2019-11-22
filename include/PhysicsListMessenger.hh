@@ -8,9 +8,9 @@ class PhysicsList;
 
 class G4UIdirectory;
 class G4UIcmdWithAnInteger;
+class G4UIcmdWithADoubleAndUnit;
 
 /// Provide control of the physics list and cut parameters
-
 class PhysicsListMessenger : public G4UImessenger
 {
 public:
@@ -25,6 +25,7 @@ private:
     PhysicsList* fPhysicsList;
     G4UIdirectory* fDirectory;
     G4UIcmdWithAnInteger* fVerboseCmd;
+    G4UIcmdWithADoubleAndUnit* fStepMaxSizeCmd;
 
 };
 

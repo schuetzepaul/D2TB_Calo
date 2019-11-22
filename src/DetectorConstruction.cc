@@ -98,8 +98,6 @@ void DetectorConstruction::UpdateGeometryParameters()
 {
     fWorldSizeXY = 1*m;
     fWorldSizeZ  = 1*m;
-    fSiPMSizeXY = 1*mm;
-    fSiPMDepth = 0.1*mm;
     fNCrystalPerRow = 3;
     fCaloSizeXY = fCrystalSizeXY*fNCrystalPerRow;
     fCaloDepth = fCrystalDepth+fSiPMDepth;
@@ -170,7 +168,7 @@ void DetectorConstruction::DefineMaterials()
 
     fCrystalMaterial->SetMaterialPropertiesTable(propLYSO);
     //Set the birks constant for LYSO // TODO check this
-    fCrystalMaterial->GetIonisation()->SetBirksConstant(0.0076*mm/MeV);
+    fCrystalMaterial->GetIonisation()->SetBirksConstant(0.126*mm/MeV);
 
     //Refraction properties of Air
     G4double rAir[nLYSO] = { 1.0 };
@@ -235,53 +233,43 @@ void DetectorConstruction::ConstructSDandField()
 
 void DetectorConstruction::BuildCrystalandSiPM()
 {
-    //Volume encapsulating SiPM + Crystal to easily duplicate them
-    auto EncapsVol = new G4Box("EncapsulatingBox", fCrystalSizeXY/2, fCrystalSizeXY/2, fCrystalDepth/2+fSiPMDepth);
-    auto LogicEncapsVol = new G4LogicalVolume(EncapsVol, fDefaultMaterial, "EncapsulatingBoxLV");
+    G4int nbins = 1;
+    G4double p_crystal[] = { 2.8 *eV };
+    G4double refl_crystal[] = { 1. };
+    G4double effi_crystal[] = { 0. };
 
     //Crystal
     auto Crystal = new G4Box("Crystal", fCrystalSizeXY/2, fCrystalSizeXY/2, fCrystalDepth/2);
     fCrystalLogical = new G4LogicalVolume(Crystal, fCrystalMaterial, "CrystalLV");
-    fCrystalPhysical = new G4PVPlacement(0, G4ThreeVector(0, 0, fSiPMDepth), fCrystalLogical, "Crystal", LogicEncapsVol, false, 0, fCheckOverlaps);
 
     auto CrystalVisAtt = new G4VisAttributes(G4Colour(0.0,1.0,1.0));
     CrystalVisAtt->SetVisibility(true);
     fCrystalLogical->SetVisAttributes(CrystalVisAtt);
 
+    //Crystals are just polished
     G4OpticalSurface* CrystalSurface = new G4OpticalSurface("CrystalSurface", glisur, polished, dielectric_dielectric, 1.0);
 
     G4MaterialPropertiesTable* crystalSurfaceProperty = new G4MaterialPropertiesTable();
-    G4int nbins = 1;
-    G4double p_crystal[] = { 2.8 *eV };
-    G4double refl_crystal[] = { 1. };
-    G4double effi_crystal[] = { 0. };
     crystalSurfaceProperty->AddProperty("REFLECTIVITY", p_crystal, refl_crystal, nbins);
     crystalSurfaceProperty->AddProperty("EFFICIENCY", p_crystal, effi_crystal, nbins);
     CrystalSurface->SetMaterialPropertiesTable(crystalSurfaceProperty);
 
+    //Is that correct????
     new G4LogicalSkinSurface("CrystalSurface", fCrystalLogical, CrystalSurface);
 
+    //Hole inside the crystal to house the SiPM
+    G4double fHoleDepth = 2*fSiPMDepth;
+    auto Hole = new G4Box("Hole", fSiPMSizeXY/2, fSiPMSizeXY/2, fHoleDepth);
+    auto logicHole = new G4LogicalVolume(Hole, fDefaultMaterial, "HoleLV");
+    //SiPM
     auto SiPM = new G4Box("SiPM", fSiPMSizeXY/2, fSiPMSizeXY/2, fSiPMDepth);
     auto logicSiPM = new G4LogicalVolume(SiPM, fDefaultMaterial, "SiPMLV");
-
-    auto SiPMVisAtt = new G4VisAttributes(G4Colour(1.0,0.0,0.0));
-    SiPMVisAtt->SetVisibility(true);
-    logicSiPM->SetVisAttributes(SiPMVisAtt);
-
+    //Photocathode inside the SiPM
     auto PhotonDet = new G4Box("PhotonDet", fSiPMSizeXY/2, fSiPMSizeXY/2, fSiPMDepth/2);
     auto logicPhotonDet = new G4LogicalVolume(PhotonDet, fSiPMMaterial, "PhotonDetLV");
     new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
 
-    G4double spacing = 0.5*cm;
-    //Center
-    new G4PVPlacement(0, G4ThreeVector(0., 0., -fCrystalDepth/2), logicSiPM, "SiPM1", LogicEncapsVol, false, 0, fCheckOverlaps);
-    //Top/Bottom Left Corner
-    new G4PVPlacement(0, G4ThreeVector(-fCrystalSizeXY/2+spacing, fCrystalSizeXY/2-spacing, -fCrystalDepth/2), logicSiPM, "SiPM2", LogicEncapsVol, false, 1, fCheckOverlaps);
-    new G4PVPlacement(0, G4ThreeVector(-fCrystalSizeXY/2+spacing, -fCrystalSizeXY/2+spacing, -fCrystalDepth/2), logicSiPM, "SiPM3", LogicEncapsVol, false, 2, fCheckOverlaps);
-    //Top/Bottom Right Corner
-    new G4PVPlacement(0, G4ThreeVector(fCrystalSizeXY/2-spacing, fCrystalSizeXY/2-spacing, -fCrystalDepth/2), logicSiPM, "SiPM4", LogicEncapsVol, false, 3, fCheckOverlaps);
-    new G4PVPlacement(0, G4ThreeVector(fCrystalSizeXY/2-spacing, -fCrystalSizeXY/2+spacing, -fCrystalDepth/2), logicSiPM, "SiPM5", LogicEncapsVol, false, 4, fCheckOverlaps);
-
+    //----------------------------------------------------------------------
     // PhotonDet Surface Properties
     G4OpticalSurface* photonDetSurface = new G4OpticalSurface("PhotonDetSurface", glisur, ground, dielectric_metal, 1.0);
 
@@ -296,10 +284,51 @@ void DetectorConstruction::BuildCrystalandSiPM()
 
     new G4LogicalSkinSurface("PhotonDetSurface", logicPhotonDet, photonDetSurface);
 
-    //Placing the different crystals
+    auto SiPMVisAtt = new G4VisAttributes(G4Colour(1.0,0.647,0.0));
+    SiPMVisAtt->SetVisibility(true);
+    SiPMVisAtt->SetForceSolid(true);
+    logicPhotonDet->SetVisAttributes(SiPMVisAtt);
+
+    //---------------------- Placement of the SiPMs ------------------------------------------------
+
+    G4double spacing = 0.5*cm;
+
+    G4int fNSiPMPerRow = 5;
+    G4int fNSiPMRow = 5;
+    for(int irow = 0; irow < fNSiPMRow; irow++)
+    {
+        G4double fOffsetX = 0.;
+        G4double fOffsetY = 0.;
+
+        fOffsetY = -fCrystalSizeXY/2+spacing + irow*spacing;
+
+        for(int iSiPM = 0; iSiPM < fNSiPMPerRow; iSiPM++)
+        {
+            G4String SiPMname = "SiPM";
+            // SiPMname += G4UIcommand::ConvertToString(iSiPM+1);
+            // SiPMname += "_Row";
+            // SiPMname += G4UIcommand::ConvertToString(irow+1);
+
+            G4String Holename = "Hole";
+            // Holename += G4UIcommand::ConvertToString(iSiPM+1);
+            // Holename += "_Row";
+            // Holename += G4UIcommand::ConvertToString(irow+1);
+
+            fOffsetX = -fCrystalSizeXY/2+spacing + iSiPM*spacing;
+
+            //Hole placement inside the crystal
+            new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2+fHoleDepth), logicHole, Holename, fCrystalLogical, false, irow+10*irow, fCheckOverlaps);
+
+            //SiPM placement inside the hole
+            new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth), logicSiPM, SiPMname, logicHole, false, irow+10*irow, fCheckOverlaps);
+        }
+    }
+
+    //---------------------- Placement of the Crystals --------------------------------------------
     for(int i = 0; i < fNCrystal; i++){
-        G4String name = "EncapsulatingBox_";
-        name += G4UIcommand::ConvertToString(i+1);
+        G4String name = "Crystal";
+        // name += G4UIcommand::ConvertToString(i+1);
+
         G4double fOffsetX = 0.;
         G4double fOffsetY = 0.;
 
@@ -316,12 +345,9 @@ void DetectorConstruction::BuildCrystalandSiPM()
             fOffsetY = (-fCaloSizeXY+fCrystalSizeXY)/2 + 2*fCrystalSizeXY;
         }
 
-        new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2-fSiPMDepth), LogicEncapsVol, name, fWorldLogical, false, i, fCheckOverlaps);
+        //Place Crystal
+        new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2), fCrystalLogical, name, fWorldLogical, false, i, fCheckOverlaps);
     }
-
-    auto EncapsVolVisAtt = new G4VisAttributes(G4Colour(1.0,1.0,0.0));
-    EncapsVolVisAtt->SetVisibility(true);
-    LogicEncapsVol->SetVisAttributes(EncapsVolVisAtt);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -374,4 +400,9 @@ void DetectorConstruction::SetSiPMSizeXY(G4double val) {
 void DetectorConstruction::SetSiPMDepth(G4double val) {
     fSiPMDepth = val;
     G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+G4double DetectorConstruction::GetCrystalEnd()
+{
+    return fCrystalDepth;
 }

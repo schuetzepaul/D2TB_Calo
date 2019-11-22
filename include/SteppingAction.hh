@@ -8,6 +8,7 @@
 
 #include "globals.hh"
 
+class DetectorConstruction;
 class G4OpBoundaryProcess;
 class G4Step;
 
@@ -20,17 +21,21 @@ class G4Step;
 class SteppingAction : public G4UserSteppingAction
 {
 public:
-    SteppingAction();
+    SteppingAction(DetectorConstruction*);
     virtual ~SteppingAction();
 
     virtual void UserSteppingAction(const G4Step* theStep);
 
-    inline void ResetCounters()
-    {
-      fCounterBounce = 0;
-    }
+    void SetBounceLimit(G4int i) { fBounceLimit = i; }
 
 private:
+    
+    inline void ResetCounters()
+    {
+        fCounterBounce = 0;
+    }
+
+    DetectorConstruction* fDetector;
 
     // Artificially kill the photon after it has bounced more than this number
     G4int fBounceLimit;
@@ -38,7 +43,7 @@ private:
     // total number of bounces that a photon been through
     G4int fCounterBounce;
 
-     G4OpBoundaryProcess* fOpProcess;
+    G4OpBoundaryProcess* fOpProcess;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

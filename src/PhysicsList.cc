@@ -42,6 +42,10 @@
 #include "G4PhysicalConstants.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "StepMax.hh"
+#include "G4UserSpecialCuts.hh"
+#include "G4StepLimiter.hh"
+
 G4ThreadLocal G4int PhysicsList::fVerboseLevel = 1;
 G4ThreadLocal G4Scintillation* PhysicsList::fScintillationProcess = 0;
 G4ThreadLocal G4OpAbsorption* PhysicsList::fAbsorptionProcess = 0;
@@ -53,6 +57,7 @@ PhysicsList::PhysicsList()
 {
     fDefaultCutValue = 0.7*mm;
     fMessenger = new PhysicsListMessenger(this);
+    fStepMaxProcess = new StepMax();
 }
 
 PhysicsList::~PhysicsList()
@@ -85,10 +90,18 @@ void PhysicsList::ConstructParticle()
 
 void PhysicsList::ConstructProcess()
 {
+    G4cout << "PhysicsList::ConstructProcess() : AddTransportation()" << G4endl;
     AddTransportation();
+    G4cout << "PhysicsList::ConstructProcess() : ConstructDecay()" << G4endl;
     ConstructDecay();
+    G4cout << "PhysicsList::ConstructProcess() : ConstructEM()" << G4endl;
     ConstructEM();
+    G4cout << "PhysicsList::ConstructProcess() : ConstructOp()" << G4endl;
     ConstructOp();
+    G4cout << "PhysicsList::ConstructProcess() : AddStepMax()" << G4endl;
+    AddStepMax();
+    G4cout << "PhysicsList::ConstructProcess() : AddLimiters()" << G4endl;
+    AddLimiters();
 }
 
 void PhysicsList::ConstructDecay()
@@ -207,6 +220,23 @@ void PhysicsList::ConstructOp()
     }
 }
 
+void PhysicsList::AddStepMax()
+{
+    // Step limitation seen as a process
+
+    auto particleIterator=GetParticleIterator();
+    particleIterator->reset();
+    while ((*particleIterator)()){
+        G4ParticleDefinition* particle = particleIterator->value();
+        G4ProcessManager* pmanager = particle->GetProcessManager();
+
+        if (fStepMaxProcess->IsApplicable(*particle) && !particle->IsShortLived())
+        {
+            if (pmanager) pmanager ->AddDiscreteProcess(fStepMaxProcess);
+        }
+    }
+}
+
 void PhysicsList::SetVerbose(G4int verbose)
 {
     fVerboseLevel = verbose;
@@ -215,6 +245,11 @@ void PhysicsList::SetVerbose(G4int verbose)
     fAbsorptionProcess->SetVerboseLevel(fVerboseLevel);
     fRayleighScatteringProcess->SetVerboseLevel(fVerboseLevel);
     fBoundaryProcess->SetVerboseLevel(fVerboseLevel);
+}
+
+void PhysicsList::SetStepMax(G4double val)
+{
+    fStepMaxProcess->SetStepMax(val);
 }
 
 void PhysicsList::SetCuts()
@@ -233,4 +268,39 @@ void PhysicsList::SetCuts()
     SetCutValue(fDefaultCutValue, "e+");
 
     if (verboseLevel > 0) DumpCutValuesTable();
+}
+
+void PhysicsList::AddLimiters()
+{
+    auto particleIterator=GetParticleIterator();
+    particleIterator->reset();
+
+    while ((*particleIterator)()) {
+        G4ParticleDefinition* particle = particleIterator->value();
+        G4ProcessManager* pmanager = particle->GetProcessManager();
+        G4String particleName = particle->GetParticleName();
+        G4double charge = particle->GetPDGCharge();
+
+        if (!pmanager) {
+            std::ostringstream o;
+            o << "Particle " << particleName << "without a Process Manager";
+            G4Exception("WLSExtraPhysics::ConstructProcess()","",
+            FatalException,o.str().c_str());
+        }
+
+        if (particleName == "opticalphoton") break;
+
+        if (charge != 0.0) {
+            // All charged particles should have a step limiter
+            // to make sure that the steps do not get too long.
+            pmanager->AddDiscreteProcess(new G4StepLimiter());
+            pmanager->AddDiscreteProcess(new G4UserSpecialCuts());
+        } else if (particleName == "neutron") {
+            // time cuts for ONLY neutrons:
+            pmanager->AddDiscreteProcess(new G4UserSpecialCuts());
+        } else {
+            // Energy cuts for all other neutral particles
+            pmanager->AddDiscreteProcess(new G4UserSpecialCuts());
+        }
+    }
 }

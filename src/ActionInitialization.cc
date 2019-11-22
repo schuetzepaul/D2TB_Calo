@@ -38,7 +38,7 @@ void ActionInitialization::Build() const
     SetUserAction(new RunAction());
     EventAction *evtAction = new EventAction();
     SetUserAction(evtAction);
-    SetUserAction(new SteppingAction());
+    SetUserAction(new SteppingAction(fDetConstruction));
     SetUserAction(new TrackingAction());
     SetUserAction(new StackingAction());
 }
