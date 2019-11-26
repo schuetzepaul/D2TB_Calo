@@ -22,7 +22,6 @@ DetectorMessenger::DetectorMessenger(DetectorConstruction* det)
 fDetector(det),
 fDirectory(0),
 fVerboseCmd(0),
-fFilenameCmd(0),
 fNCrystalCmd(0),
 fCrystalSizeXYCmd(0),
 fCrystalDepthCmd(0),
@@ -38,12 +37,6 @@ fSiPMDepthCmd(0)
     fVerboseCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
     fVerboseCmd->SetRange("verbose>=0");
     fVerboseCmd->SetToBeBroadcasted(false);
-
-    fFilenameCmd = new G4UIcmdWithAString("/d2tb/det/filename",this);
-    fFilenameCmd->SetGuidance("Set filename of the rootfile.");
-    fFilenameCmd->SetParameterName("filename", false);
-    fFilenameCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
-    fFilenameCmd->SetToBeBroadcasted(false);
 
     fNCrystalCmd = new G4UIcmdWithAnInteger("/d2tb/det/NumberOfCrystals",this);
     fNCrystalCmd->SetGuidance("Set number of crystals.");
@@ -91,7 +84,6 @@ DetectorMessenger::~DetectorMessenger()
 {
     delete fDirectory;
     delete fVerboseCmd;
-    delete fFilenameCmd;
     delete fNCrystalCmd;
     delete fCrystalSizeXYCmd;
     delete fCrystalDepthCmd;
@@ -103,9 +95,6 @@ void DetectorMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 {
     if( command == fVerboseCmd ) {
         fDetector->SetVerboseLevel(fVerboseCmd->GetNewIntValue(newValue));
-    }
-    else if( command == fFilenameCmd ) {
-        fDetector->SetROOTFilename(newValue);
     }
     else if( command == fNCrystalCmd ) {
         fDetector->SetNCrystal(fNCrystalCmd->GetNewIntValue(newValue));
@@ -131,9 +120,6 @@ G4String DetectorMessenger::GetCurrentValue(G4UIcommand * command)
     G4String ans;
     if( command == fVerboseCmd ) {
         ans=fVerboseCmd->ConvertToString(fDetector->GetVerboseLevel());
-    }
-    else if( command == fFilenameCmd ) {
-        ans=fFilenameCmd->ConvertToString(fDetector->GetROOTFilename());
     }
     else if( command == fNCrystalCmd ) {
         ans=fNCrystalCmd->ConvertToString(fDetector->GetNCrystal());

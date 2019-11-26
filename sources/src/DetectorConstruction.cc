@@ -54,8 +54,7 @@ fDefaultMaterial(nullptr),
 fWorldLogical(nullptr),
 fCrystalLogical(nullptr),
 fWorldPhysical(nullptr),
-fCrystalPhysical(nullptr),
-fROOTFilename("")
+fCrystalPhysical(nullptr)
 {
     //Compute Params
     fDetectorMessenger = new DetectorMessenger(this);
@@ -246,17 +245,6 @@ void DetectorConstruction::BuildCrystalandSiPM()
     CrystalVisAtt->SetVisibility(true);
     fCrystalLogical->SetVisAttributes(CrystalVisAtt);
 
-    //Crystals are just polished
-    G4OpticalSurface* CrystalSurface = new G4OpticalSurface("CrystalSurface", glisur, polished, dielectric_dielectric, 1.0);
-
-    G4MaterialPropertiesTable* crystalSurfaceProperty = new G4MaterialPropertiesTable();
-    crystalSurfaceProperty->AddProperty("REFLECTIVITY", p_crystal, refl_crystal, nbins);
-    crystalSurfaceProperty->AddProperty("EFFICIENCY", p_crystal, effi_crystal, nbins);
-    CrystalSurface->SetMaterialPropertiesTable(crystalSurfaceProperty);
-
-    //Is that correct????
-    new G4LogicalSkinSurface("CrystalSurface", fCrystalLogical, CrystalSurface);
-
     //Hole inside the crystal to house the SiPM
     G4double fHoleDepth = 2*fSiPMDepth;
     auto Hole = new G4Box("Hole", fSiPMSizeXY/2, fSiPMSizeXY/2, fHoleDepth);
@@ -267,7 +255,7 @@ void DetectorConstruction::BuildCrystalandSiPM()
     //Photocathode inside the SiPM
     auto PhotonDet = new G4Box("PhotonDet", fSiPMSizeXY/2, fSiPMSizeXY/2, fSiPMDepth/2);
     auto logicPhotonDet = new G4LogicalVolume(PhotonDet, fSiPMMaterial, "PhotonDetLV");
-    new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
+    auto physPhotonDet = new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
 
     //----------------------------------------------------------------------
     // PhotonDet Surface Properties
@@ -295,6 +283,9 @@ void DetectorConstruction::BuildCrystalandSiPM()
 
     G4int fNSiPMPerRow = 5;
     G4int fNSiPMRow = 5;
+    G4VPhysicalVolume* physHole[fNSiPMRow][fNSiPMPerRow];
+    G4VPhysicalVolume* physSiPM[fNSiPMRow][fNSiPMPerRow];
+
     for(int irow = 0; irow < fNSiPMRow; irow++)
     {
         G4double fOffsetX = 0.;
@@ -317,36 +308,62 @@ void DetectorConstruction::BuildCrystalandSiPM()
             fOffsetX = -fCrystalSizeXY/2+spacing + iSiPM*spacing;
 
             //Hole placement inside the crystal
-            new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2+fHoleDepth), logicHole, Holename, fCrystalLogical, false, irow+10*irow, fCheckOverlaps);
+            physHole[irow][iSiPM] = new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2+fHoleDepth), logicHole, Holename, fCrystalLogical, false, irow+10*irow, fCheckOverlaps);
 
             //SiPM placement inside the hole
-            new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth), logicSiPM, SiPMname, logicHole, false, irow+10*irow, fCheckOverlaps);
+            physSiPM[irow][iSiPM] = new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth), logicSiPM, SiPMname, logicHole, false, irow+10*irow, fCheckOverlaps);
         }
     }
 
+    G4VPhysicalVolume* physCrystal[fNCrystal];
     //---------------------- Placement of the Crystals --------------------------------------------
-    for(int i = 0; i < fNCrystal; i++){
+    for(int iCrystal = 0; iCrystal < fNCrystal; iCrystal++){
         G4String name = "Crystal";
-        // name += G4UIcommand::ConvertToString(i+1);
 
         G4double fOffsetX = 0.;
         G4double fOffsetY = 0.;
 
-        if(i < fNCrystalPerRow){
-            fOffsetX = (-fCaloSizeXY+fCrystalSizeXY)/2 + i*fCrystalSizeXY;
+        if(iCrystal < fNCrystalPerRow){
+            fOffsetX = (-fCaloSizeXY+fCrystalSizeXY)/2 + iCrystal*fCrystalSizeXY;
             fOffsetY = (-fCaloSizeXY+fCrystalSizeXY)/2;
         }
-        if(i >= fNCrystalPerRow && i < 2*fNCrystalPerRow){
-            fOffsetX = (-fCaloSizeXY+fCrystalSizeXY)/2 + (i-fNCrystalPerRow)*fCrystalSizeXY;
+        if(iCrystal >= fNCrystalPerRow && iCrystal < 2*fNCrystalPerRow){
+            fOffsetX = (-fCaloSizeXY+fCrystalSizeXY)/2 + (iCrystal-fNCrystalPerRow)*fCrystalSizeXY;
             fOffsetY = (-fCaloSizeXY+fCrystalSizeXY)/2 + fCrystalSizeXY;
         }
-        if(i >= 2*fNCrystalPerRow){
-            fOffsetX = (-fCaloSizeXY+fCrystalSizeXY)/2 + (i-2*fNCrystalPerRow)*fCrystalSizeXY;
+        if(iCrystal >= 2*fNCrystalPerRow){
+            fOffsetX = (-fCaloSizeXY+fCrystalSizeXY)/2 + (iCrystal-2*fNCrystalPerRow)*fCrystalSizeXY;
             fOffsetY = (-fCaloSizeXY+fCrystalSizeXY)/2 + 2*fCrystalSizeXY;
         }
 
         //Place Crystal
-        new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2), fCrystalLogical, name, fWorldLogical, false, i, fCheckOverlaps);
+        physCrystal[iCrystal] = new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2), fCrystalLogical, name, fWorldLogical, false, iCrystal, fCheckOverlaps);
+    }
+
+    //Border between crystals
+    //Crystals are just polished
+    G4OpticalSurface* CrystalSurface = new G4OpticalSurface("CrystalSurface", glisur, polished, dielectric_dielectric, 1.0);
+
+    G4MaterialPropertiesTable* crystalSurfaceProperty = new G4MaterialPropertiesTable();
+    crystalSurfaceProperty->AddProperty("REFLECTIVITY", p_crystal, refl_crystal, nbins);
+    crystalSurfaceProperty->AddProperty("EFFICIENCY", p_crystal, effi_crystal, nbins);
+    CrystalSurface->SetMaterialPropertiesTable(crystalSurfaceProperty);
+
+    for(int iCrystal = 0; iCrystal < fNCrystal-1; iCrystal++){
+        new G4LogicalBorderSurface("CrystalSurf", physCrystal[iCrystal], physCrystal[iCrystal+1], CrystalSurface);
+        new G4LogicalBorderSurface("CrystalSurf", physCrystal[iCrystal+1], physCrystal[iCrystal], CrystalSurface);
+    }
+
+    //Border between crystal and world (wrapped)
+    G4OpticalSurface* CrystalWrapping = new G4OpticalSurface("CrystalWrapping", glisur, polished, dielectric_metal, 1.0);
+
+    G4MaterialPropertiesTable* crystalWrappingProperty = new G4MaterialPropertiesTable();
+    crystalWrappingProperty->AddProperty("REFLECTIVITY", p_crystal, refl_crystal, nbins);
+    crystalWrappingProperty->AddProperty("EFFICIENCY", p_crystal, effi_crystal, nbins);
+    CrystalWrapping->SetMaterialPropertiesTable(crystalWrappingProperty);
+
+    for(int iCrystal = 0; iCrystal < fNCrystal; iCrystal++){
+        new G4LogicalBorderSurface("CrystalWrapping", physCrystal[iCrystal], fWorldPhysical, CrystalWrapping);
     }
 }
 
@@ -361,7 +378,6 @@ void DetectorConstruction::PrintParameters()
     << " CaloBox XY size " << G4BestUnit(fCaloSizeXY, "Length") << "depth " << G4BestUnit(fCaloDepth, "Length") << G4endl
     << " SiPM XY size " << G4BestUnit(fSiPMSizeXY, "Length") << "depth " << G4BestUnit(fSiPMDepth, "Length") << G4endl
     << " NCrystal: " << fNCrystal << " (" << fNCrystalPerRow << " per row) - Crystal XY size " << G4BestUnit(fCrystalSizeXY, "Length") << " depth " << G4BestUnit(fCrystalDepth, "Length") << G4endl
-    << " Output ROOT file set to " << fROOTFilename << G4endl
     << "------------------------------------------------------------" << G4endl;
 }
 
@@ -369,11 +385,6 @@ void DetectorConstruction::PrintParameters()
 
 void DetectorConstruction::SetVerboseLevel(G4int val) {
     fVerboseLevel = val;
-    G4RunManager::GetRunManager()->ReinitializeGeometry();
-}
-
-void DetectorConstruction::SetROOTFilename(G4String val) {
-    fROOTFilename = val;
     G4RunManager::GetRunManager()->ReinitializeGeometry();
 }
 

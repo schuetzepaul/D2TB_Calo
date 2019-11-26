@@ -69,8 +69,21 @@ G4bool PhotonDetSD::ProcessHits_constStep(const G4Step* aStep, G4TouchableHistor
     // the local coordinate of the detector
     G4ThreeVector photonArriveLocal = theTouchable->GetHistory()->GetTopTransform().TransformPoint(photonArrive);
 
+    //Get the copy number of the volume (starts at 0) (depth = 3 / 1 = SiPM / 2 = Hole / 3 = Crystal)
+    G4int copyNo = theTouchable->GetCopyNumber(3)+1;
+
     // Creating the hit and add it to the collection
-    fPhotonDetHitCollection->insert(new PhotonDetHit(photonExit, photonArrive, photonArriveLocal, arrivalTime, physical->GetLogicalVolume()));
+    fPhotonDetHitCollection->insert(new PhotonDetHit(photonExit, photonArrive, photonArriveLocal, arrivalTime, physical->GetLogicalVolume(), copyNo));
 
     return true;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void PhotonDetSD::EndOfEvent(G4HCofThisEvent*)
+{
+    G4int nDetected = fPhotonDetHitCollection->entries();
+    G4cout << "<<< Number of photon detected " << nDetected << G4endl;
+    for (G4int i = 0; i < nDetected; i++) (*fPhotonDetHitCollection)[i]->Print();
+
 }

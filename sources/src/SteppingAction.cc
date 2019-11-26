@@ -83,9 +83,9 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
     case FresnelRefraction:
     case SameMaterial:
         {
-            G4cout << "Case SameMaterial" << G4endl;
-            G4cout << "thePrePVname " << thePrePVname << G4endl;
-            G4cout << "thePostPVname " << thePostPVname << G4endl;
+            // G4cout << "Case SameMaterial" << G4endl;
+            // G4cout << "thePrePVname " << thePrePVname << G4endl;
+            // G4cout << "thePostPVname " << thePostPVname << G4endl;
 
             G4bool isCrystal;
             isCrystal = thePostPVname == "Crystal";
@@ -155,10 +155,10 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
         // Detected by a detector
     case Detection:
         {
-            G4cout << "Case Detection" << G4endl;
-            G4cout << "thePrePVname " << thePrePVname << G4endl;
-            G4cout << "thePostPVname " << thePostPVname << G4endl;
-            
+            // G4cout << "Case Detection" << G4endl;
+            // G4cout << "thePrePVname " << thePrePVname << G4endl;
+            // G4cout << "thePostPVname " << thePostPVname << G4endl;
+
             if ( thePostPVname == "PhotonDet" ) {
 
                 G4SDManager* SDman = G4SDManager::GetSDMpointer();

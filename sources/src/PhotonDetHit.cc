@@ -22,17 +22,19 @@ PhotonDetHit::PhotonDetHit()
     fPosArriveLocal = G4ThreeVector(0., 0., 0.);
     fPosExit     = G4ThreeVector(0., 0., 0.);
     fLogicalVolume = nullptr;
+    fCopyNo = 0;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PhotonDetHit::PhotonDetHit(G4ThreeVector pExit, G4ThreeVector pArrive, G4ThreeVector pArriveLocal, G4double pTime, G4LogicalVolume* pLogV)
+PhotonDetHit::PhotonDetHit(G4ThreeVector pExit, G4ThreeVector pArrive, G4ThreeVector pArriveLocal, G4double pTime, G4LogicalVolume* pLogV, G4int pCopyNo)
 {
     fPosExit     = pExit;
     fPosArrive   = pArrive;
     fPosArriveLocal = pArriveLocal;
     fArrivalTime = pTime;
     fLogicalVolume = pLogV;
+    fCopyNo = pCopyNo;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -56,6 +58,7 @@ const PhotonDetHit& PhotonDetHit::operator=(const PhotonDetHit &right)
     fPosArriveLocal = right.fPosArriveLocal;
     fArrivalTime = right.fArrivalTime;
     fLogicalVolume = right.fLogicalVolume;
+    fCopyNo = right.fCopyNo;
 
     return *this;
 }
@@ -64,7 +67,7 @@ const PhotonDetHit& PhotonDetHit::operator=(const PhotonDetHit &right)
 
 G4bool PhotonDetHit::operator==(const PhotonDetHit& right) const
 {
-    return (fPosExit == right.fPosExit && fPosArrive == right.fPosArrive && fPosArriveLocal == right.fPosArriveLocal && fArrivalTime == right.fArrivalTime && fLogicalVolume == right.fLogicalVolume);
+    return (fPosExit == right.fPosExit && fPosArrive == right.fPosArrive && fPosArriveLocal == right.fPosArriveLocal && fArrivalTime == right.fArrivalTime && fLogicalVolume == right.fLogicalVolume && fCopyNo == right.fCopyNo);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -105,6 +108,9 @@ const std::map<G4String,G4AttDef>* PhotonDetHit::GetAttDefs() const
         (*store)["Time"] = G4AttDef("Time", "Time", "Physics","G4BestUnit",
         "G4double");
 
+        (*store)["CopyNo"] = G4AttDef("CopyNo", "Copy Number", "Physics","",
+        "G4int");
+
         (*store)["LVol"] = G4AttDef("LVol","Logical Volume","Physics","","G4String");
     }
     return store;
@@ -118,13 +124,15 @@ std::vector<G4AttValue>* PhotonDetHit::CreateAttValues() const
 
     values->push_back(G4AttValue("HitType","PhotonDetHit",""));
 
-    values->push_back(G4AttValue("PosExit",G4BestUnit(fPosExit,"Length"),""));
+    values->push_back(G4AttValue("PosExit",G4BestUnit(fPosExit, "Length"),""));
 
-    values->push_back(G4AttValue("PosArrive",G4BestUnit(fPosArrive,"Length"),""));
+    values->push_back(G4AttValue("PosArrive",G4BestUnit(fPosArrive, "Length"),""));
 
-    values->push_back(G4AttValue("PosArriveLocal",G4BestUnit(fPosArriveLocal,"Length"),""));
+    values->push_back(G4AttValue("PosArriveLocal",G4BestUnit(fPosArriveLocal, "Length"),""));
 
-    values->push_back(G4AttValue("Time",G4BestUnit(fArrivalTime,"Time"),""));
+    values->push_back(G4AttValue("Time",G4BestUnit(fArrivalTime, "Time"),""));
+
+    values->push_back(G4AttValue("CopyNo", fCopyNo,""));
 
     if (fLogicalVolume)
     values->push_back(G4AttValue("LVol",fLogicalVolume->GetName(),""));
@@ -132,4 +140,15 @@ std::vector<G4AttValue>* PhotonDetHit::CreateAttValues() const
     values->push_back(G4AttValue("LVol"," ",""));
 
     return values;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void PhotonDetHit::Print()
+{
+    G4cout << "Exit Position: " << G4BestUnit(fPosExit, "Length") << G4endl;
+    G4cout << "Arrived Position on the SiPM (global): " << G4BestUnit(fPosArrive, "Length") << G4endl;
+    G4cout << "Arrived Position on the SiPM (local): " << G4BestUnit(fPosArriveLocal, "Length") << G4endl;
+    G4cout << "Arrival Time: " << G4BestUnit(fArrivalTime, "Time") << G4endl;
+    G4cout << "Crystal Copy No: " << fCopyNo << G4endl;
 }

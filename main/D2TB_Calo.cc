@@ -1,6 +1,7 @@
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
 #include "PhysicsList.hh"
+#include "PersistencyManager.hh"
 
 #ifdef G4MULTITHREADED
 #include "G4MTRunManager.hh"
@@ -82,6 +83,9 @@ int main(int argc,char** argv)
     auto actionInitialization = new ActionInitialization(detConstruction);
     runManager->SetUserInitialization(actionInitialization);
 
+    PersistencyManager* persistencyManager = NULL;
+    persistencyManager = new PersistencyManager();
+
     // Initialize visualization
     auto visManager = new G4VisExecutive;
     visManager->Initialize();
@@ -109,6 +113,10 @@ int main(int argc,char** argv)
     // Free the store: user actions, physics_list and detector_description are
     // owned and deleted by the run manager, so they should not be deleted
     // in the main() program !
+    if (persistencyManager) {
+        persistencyManager->Close();
+        delete persistencyManager;
+    }
     delete visManager;
     delete runManager;
 

@@ -1,9 +1,6 @@
 # Verbose detector construction
 /d2tb/det/verbose 2
 
-# Set the name of the output rootfile
-/d2tb/det/filename D2TB.root
-
 # Set the number of crystals
 /d2tb/det/NumberOfCrystals 9
 
@@ -18,6 +15,9 @@
 
 # Set the SiPM depth
 /d2tb/det/SiPMDepth 0.1 mm
+
+# Name of the output rootfile
+/d2tb/root/open out.root
 
 # Initialize kernel
 /run/initialize
