@@ -6,20 +6,19 @@
 #include "G4ThreeVector.hh"
 
 enum TrackStatus {
-undefined=0, defined=1,
-EscapedFromSide=2, EscapedFromReadOut=3, ReflectedAtReadOut=4,
-murderee=5, InsideOfCrystal=6, OutsideOfCrystal=7, hitSiPM=8
+    active=1, hitSiPM=2, absorbed=4, boundaryAbsorbed=8,
+    murderee=16, inactive=14, insideOfCrystal=18
 };
 
 /*TrackStatus:
-undefined:
-EscapedFromSide:        photon escaped through the side of the crystal
-EscapedFromReadOut:     photon escaped through the read-out end of the crystal
-ReflectedAtReadOut:     photon has been reflected at the read-out end
-murderee                photon is artificially killed
-InsideOfCrystal         Flag is on if the photon is inside of crystal
-OutsideOfCrystal        Flag is on if the photon is outside of crystal
-hitSiPM                 Flag is on if the photon hit the SiPM
+active: still being tracked
+hitSiPM: stopped by being detected in a SiPM
+absorbed: stopped by being absorbed with G4OpAbsorbtion
+boundaryAbsorbed: stopped by being aborbed with G4OpAbsorbtion
+murderee: killed track
+inactive: track is stopped for some reason
+InsideOfCrystal: track is inside the crystal
+-This is the sum of all stopped flags so can be used to remove stopped flags
 */
 
 class UserTrackInformation : public G4VUserTrackInformation
@@ -34,13 +33,12 @@ public:
     const G4ThreeVector& GetExitPosition() const { return fExitPosition; }
     void SetExitPosition (const G4ThreeVector& pos) { fExitPosition = pos; }
 
-    // Try adding a status flag and return if it is successful or not
-    // Cannot Add Undefine or a flag that conflicts with another flag
-    // Return true if the addition of flag is successful, false otherwise
-    G4bool AddStatusFlag(TrackStatus s);
+    //Does a smart add of track status flags (disabling old flags that conflict)
+    //If s conflicts with itself it will not be detected
+    void AddTrackStatusFlag(TrackStatus s);
 
-    // Check if a certain flag is on
-    G4bool IsStatus(TrackStatus s) { return s == undefined ? !(fStatus &= defined) : fStatus & s; }
+    //Returns the Track status
+    int GetTrackStatus() const { return fStatus; }
 
 private:
     //members

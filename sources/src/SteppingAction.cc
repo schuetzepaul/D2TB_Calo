@@ -3,6 +3,8 @@
 
 #include "SteppingAction.hh"
 #include "DetectorConstruction.hh"
+#include "EventAction.hh"
+#include "SteppingActionMessenger.hh"
 
 #include "G4Step.hh"
 #include "G4Track.hh"
@@ -12,7 +14,6 @@
 #include "G4SDManager.hh"
 
 #include "G4ProcessManager.hh"
-#include "G4OpBoundaryProcess.hh"
 
 #include "PhotonDetSD.hh"
 
@@ -20,18 +21,29 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-SteppingAction::SteppingAction(DetectorConstruction* detector)
-: G4UserSteppingAction(),
-fDetector(detector)
+SteppingAction::SteppingAction(DetectorConstruction* detector, EventAction *ea)
+: fDetector(detector),
+fEventAction(ea),
+fOpProcess(nullptr),
+fBounceLimit(10000)
 {
-    fBounceLimit = 100000;
-    fOpProcess = nullptr;
+    fSteppingMessenger = new SteppingActionMessenger(this);
     ResetCounters();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-SteppingAction::~SteppingAction() {}
+SteppingAction::~SteppingAction() {
+    delete fSteppingMessenger;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void SteppingAction::SetBounceLimit(G4int i)
+{
+    fBounceLimit = i;
+    G4cout << "SteppingAction::SetBounceLimit() : Set reflection limit to " << fBounceLimit << G4endl;
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -49,142 +61,99 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
     G4String thePrePVname  = " ";
     G4String thePostPVname = " ";
 
-    if (thePostPV) {
+    //out of world
+    if ( !thePostPV  ) {
+        ResetCounters();
+        return;
+    }
+    else{
         thePrePVname  = thePrePV->GetName();
         thePostPVname = thePostPV->GetName();
     }
 
     // Retrieve the status of the photon
     G4OpBoundaryProcessStatus theStatus = Undefined;
-    G4ProcessManager* OpManager =  G4OpticalPhoton::OpticalPhoton()->GetProcessManager();
+    G4ProcessManager* OpManager = G4OpticalPhoton::OpticalPhoton()->GetProcessManager();
 
     if (OpManager) {
-        G4int MAXofPostStepLoops =
-        OpManager->GetPostStepProcessVector()->entries();
-        G4ProcessVector* fPostStepDoItVector =
-        OpManager->GetPostStepProcessVector(typeDoIt);
+        G4int MAXofPostStepLoops = OpManager->GetPostStepProcessVector()->entries();
+        G4ProcessVector* fPostStepDoItVector = OpManager->GetPostStepProcessVector(typeDoIt);
 
-        for ( G4int i = 0; i < MAXofPostStepLoops; i++) {
+        for ( G4int i=0; i<MAXofPostStepLoops; i++) {
             G4VProcess* fCurrentProcess = (*fPostStepDoItVector)[i];
             fOpProcess = dynamic_cast<G4OpBoundaryProcess*>(fCurrentProcess);
             if (fOpProcess) { theStatus = fOpProcess->GetStatus(); break;}
         }
     }
 
-    // Record Photons that missed the photon detector but escaped from readout
-    if ( !thePostPV && trackInformation->IsStatus(EscapedFromReadOut) ) {
-        ResetCounters();
-        return;
-    }
-
-    switch (theStatus)
+    G4ParticleDefinition* particleType = theTrack->GetDefinition();
+    if( particleType == G4OpticalPhoton::OpticalPhotonDefinition() )
     {
-        // Exiting the crystal
-    case FresnelRefraction:
-    case SameMaterial:
-        {
-            // G4cout << "Case SameMaterial" << G4endl;
-            // G4cout << "thePrePVname " << thePrePVname << G4endl;
-            // G4cout << "thePostPVname " << thePostPVname << G4endl;
-
-            G4bool isCrystal;
-            isCrystal = thePostPVname == "Crystal";
-
-            if(isCrystal){
-                if (trackInformation->IsStatus(OutsideOfCrystal))
-                trackInformation->AddStatusFlag(InsideOfCrystal);
-            }
-            // Set the Exit flag when the photon refracted out of the crystal
-            else if (trackInformation->IsStatus(InsideOfCrystal)) {
-                G4bool isWorld;
-                isWorld = thePostPVname == "WorldBox";
-                if(isWorld) {
-                    // EscapedFromReadOut if the z position is the same as crystal's end
-                    if(theTrack->GetPosition().z() == fDetector->GetCrystalEnd())
-                    {
-                        trackInformation->AddStatusFlag(EscapedFromReadOut);
-                        trackInformation->SetExitPosition(theTrack->GetPosition());
-                    }
-                    else{
-                        //Track exit from side
-                        trackInformation->AddStatusFlag(EscapedFromSide);
-                        trackInformation->SetExitPosition(theTrack->GetPosition());
-                        ResetCounters();
-                    }
-
-                    trackInformation->AddStatusFlag(OutsideOfCrystal);
-                    trackInformation->SetExitPosition(theTrack->GetPosition());
-
-                    //Kill the track that exits the crystal to the world volume
-                    theTrack->SetTrackStatus(fStopAndKill);
-                    trackInformation->AddStatusFlag(murderee);
-                }
-            }
-            return;
+        //Was the photon absorbed by the absorption process
+        if( thePostPoint->GetProcessDefinedStep()->GetProcessName() == "OpAbsorption" ){
+            fEventAction->IncAbsorption();
+            trackInformation->AddTrackStatusFlag(absorbed);
         }
-        //Internal Reflections
-    case TotalInternalReflection:
+
+        switch (theStatus)
         {
-            // G4cout << "Case TotalInternalReflection" << G4endl;
-            fCounterBounce++;
-            // Kill the track if it's number of bounces exceeded the limit
-            if (fBounceLimit > 0 && fCounterBounce >= fBounceLimit)
-            {
-                theTrack->SetTrackStatus(fStopAndKill);
-                trackInformation->AddStatusFlag(murderee);
-                ResetCounters();
-                G4cout << "\n Bounce Limit Exceeded" << G4endl;
-                return;
-            }
+            //Case absorbed at the bondary
+        case Absorption:
+            trackInformation->AddTrackStatusFlag(boundaryAbsorbed);
+            fEventAction->IncBoundaryAbsorption();
             break;
-        }
-    case FresnelReflection:
-        {
-            // G4cout << "Case FresnelReflection" << G4endl;
-            fCounterBounce++;
-
-            if (theTrack->GetPosition().z() == fDetector->GetCrystalEnd())
+            // Detected by a detector
+        case Detection:
             {
-                if (!trackInformation->IsStatus(ReflectedAtReadOut) && trackInformation->IsStatus(InsideOfCrystal))
-                {
-                    trackInformation->AddStatusFlag(ReflectedAtReadOut);
+                if ( thePostPVname == "PhotonDet" ) {
+
+                    G4SDManager* SDman = G4SDManager::GetSDMpointer();
+                    G4String SDname="d2tb/PhotonDet";
+                    PhotonDetSD* mppcSD = (PhotonDetSD*)SDman->FindSensitiveDetector(SDname);
+
+                    if (mppcSD) mppcSD->ProcessHits_constStep(theStep, NULL);
+                    trackInformation->AddTrackStatusFlag(hitSiPM);
                 }
-            }
-            return;
-        }
-        // Detected by a detector
-    case Detection:
-        {
-            // G4cout << "Case Detection" << G4endl;
-            // G4cout << "thePrePVname " << thePrePVname << G4endl;
-            // G4cout << "thePostPVname " << thePostPVname << G4endl;
-
-            if ( thePostPVname == "PhotonDet" ) {
-
-                G4SDManager* SDman = G4SDManager::GetSDMpointer();
-                G4String SDname="d2tb/PhotonDet";
-                PhotonDetSD* mppcSD = (PhotonDetSD*)SDman->FindSensitiveDetector(SDname);
-
-                if (mppcSD) mppcSD->ProcessHits_constStep(theStep, NULL);
-                trackInformation->AddStatusFlag(hitSiPM);
-
                 // Stop Tracking when it hits the detector's surface
                 ResetCounters();
-                return;
+                theTrack->SetTrackStatus(fStopAndKill);
+
+                break;
             }
+            //Same Material case
+        case SameMaterial:
+            {
+                if( thePrePVname == "Crystal" && thePostPVname == "WorldBox") {
+                    //Kill photons entering worldbox from the crystal
+                    theTrack->SetTrackStatus(fStopAndKill);
+                    trackInformation->AddTrackStatusFlag(murderee);
+                    //Sets the exit point
+                    trackInformation->SetExitPosition( thePostPoint->GetPosition() );
+                }
+                break;
+            }
+            //Reflections
+        case TotalInternalReflection:
+        case FresnelReflection:
+        case LambertianReflection:
+        case LobeReflection:
+        case SpikeReflection:
+        case BackScattering:
+            fCounterBounce++;
             break;
+        default: break;
         }
 
-    default: break;
+        //Check for bounce limit
+        if (fBounceLimit > 0 && fCounterBounce >= fBounceLimit)
+        {
+            theTrack->SetTrackStatus(fStopAndKill);
+            trackInformation->AddTrackStatusFlag(murderee);
+            ResetCounters();
+            G4cout << "SteppingAction::UserSteppingAction() : Bounce Limit Exceeded" << G4endl;
+            return;
+        }
     }
-
-    // Check for absorbed photons
-    if (theTrack->GetTrackStatus() != fAlive && trackInformation->IsStatus(InsideOfCrystal)){
-        ResetCounters();
-        return;
-    }
-
 }
-
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

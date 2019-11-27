@@ -12,8 +12,7 @@
 #include "G4UIcmdWithAnInteger.hh"
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIcmdWithADouble.hh"
-#include "G4Material.hh"
-#include "G4UnitsTable.hh"
+#include "G4UIcmdWithoutParameter.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -22,11 +21,14 @@ DetectorMessenger::DetectorMessenger(DetectorConstruction* det)
 fDetector(det),
 fDirectory(0),
 fVerboseCmd(0),
+fSDVerboseCmd(0),
+fValidateCmd(0),
 fNCrystalCmd(0),
 fCrystalSizeXYCmd(0),
 fCrystalDepthCmd(0),
 fSiPMSizeXYCmd(0),
-fSiPMDepthCmd(0)
+fSiPMDepthCmd(0),
+fSiPMPDECmd(0)
 {
     fDirectory = new G4UIdirectory("/d2tb/det/");
     fDirectory->SetGuidance(" Geometry Setup ");
@@ -37,6 +39,17 @@ fSiPMDepthCmd(0)
     fVerboseCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
     fVerboseCmd->SetRange("verbose>=0");
     fVerboseCmd->SetToBeBroadcasted(false);
+
+    fSDVerboseCmd = new G4UIcmdWithAnInteger("/d2tb/det/sd/verbose",this);
+    fSDVerboseCmd->SetGuidance("Set verbosity level");
+    fSDVerboseCmd->SetParameterName("verbose", false);
+    fSDVerboseCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fSDVerboseCmd->SetRange("verbose>=0");
+    fSDVerboseCmd->SetToBeBroadcasted(false);
+
+    fValidateCmd = new G4UIcmdWithoutParameter("/d2tb/det/validateGeo",this);
+    fValidateCmd->SetGuidance("Check the geometry for overlaps.");
+    fValidateCmd->AvailableForStates(G4State_PreInit);
 
     fNCrystalCmd = new G4UIcmdWithAnInteger("/d2tb/det/NumberOfCrystals",this);
     fNCrystalCmd->SetGuidance("Set number of crystals.");
@@ -62,7 +75,7 @@ fSiPMDepthCmd(0)
     fCrystalDepthCmd->SetToBeBroadcasted(false);
 
     fSiPMSizeXYCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/SiPMSizeXY",this);
-    fSiPMSizeXYCmd->SetGuidance("Set the sipm size in the XY plane.");
+    fSiPMSizeXYCmd->SetGuidance("Set the SiPM size in the XY plane.");
     fSiPMSizeXYCmd->SetParameterName("SiPMSizeXY", false);
     fSiPMSizeXYCmd->SetUnitCategory("Length");
     fSiPMSizeXYCmd->SetRange("SiPMSizeXY>0.");
@@ -70,12 +83,19 @@ fSiPMDepthCmd(0)
     fSiPMSizeXYCmd->SetToBeBroadcasted(false);
 
     fSiPMDepthCmd = new G4UIcmdWithADoubleAndUnit("/d2tb/det/SiPMDepth",this);
-    fSiPMDepthCmd->SetGuidance("Set the sipm size along the beam.");
+    fSiPMDepthCmd->SetGuidance("Set the SiPM size along the beam.");
     fSiPMDepthCmd->SetParameterName("SiPMDepth", false);
     fSiPMDepthCmd->SetUnitCategory("Length");
     fSiPMDepthCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
     fSiPMDepthCmd->SetRange("SiPMDepth>0. && SiPMDepth<=1");
     fSiPMDepthCmd->SetToBeBroadcasted(false);
+
+    fSiPMPDECmd = new G4UIcmdWithADouble("/d2tb/det/SiPM_PDE",this);
+    fSiPMPDECmd->SetGuidance("Set the SiPM PDE efficiency.");
+    fSiPMPDECmd->SetParameterName("PDE", false);
+    fSiPMPDECmd->SetRange("PDE>=0. && PDE <= 1.0");
+    fSiPMPDECmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+    fSiPMPDECmd->SetToBeBroadcasted(false);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -84,17 +104,27 @@ DetectorMessenger::~DetectorMessenger()
 {
     delete fDirectory;
     delete fVerboseCmd;
+    delete fSDVerboseCmd;
+    delete fValidateCmd;
     delete fNCrystalCmd;
     delete fCrystalSizeXYCmd;
     delete fCrystalDepthCmd;
     delete fSiPMSizeXYCmd;
     delete fSiPMDepthCmd;
+    delete fSiPMPDECmd;
 }
 
 void DetectorMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 {
     if( command == fVerboseCmd ) {
         fDetector->SetVerboseLevel(fVerboseCmd->GetNewIntValue(newValue));
+    }
+    else if( command == fSDVerboseCmd ) {
+        fDetector->SetSDVerboseLevel(fSDVerboseCmd->GetNewIntValue(newValue));
+    }
+    else if ( command == fValidateCmd ) {
+        G4cout << "Geometry will be checked for overlaps" << G4endl;
+        fDetector->ValidateGeometry();
     }
     else if( command == fNCrystalCmd ) {
         fDetector->SetNCrystal(fNCrystalCmd->GetNewIntValue(newValue));
@@ -111,6 +141,9 @@ void DetectorMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
     else if( command == fSiPMDepthCmd ) {
         fDetector->SetSiPMDepth(fSiPMDepthCmd->GetNewDoubleValue(newValue));
     }
+    else if( command == fSiPMPDECmd ) {
+        fDetector->SetSiPM_PDE(fSiPMPDECmd->GetNewDoubleValue(newValue));
+    }
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -120,6 +153,9 @@ G4String DetectorMessenger::GetCurrentValue(G4UIcommand * command)
     G4String ans;
     if( command == fVerboseCmd ) {
         ans=fVerboseCmd->ConvertToString(fDetector->GetVerboseLevel());
+    }
+    else if( command == fSDVerboseCmd ) {
+        ans=fSDVerboseCmd->ConvertToString(fDetector->GetSDVerboseLevel());
     }
     else if( command == fNCrystalCmd ) {
         ans=fNCrystalCmd->ConvertToString(fDetector->GetNCrystal());
@@ -135,6 +171,9 @@ G4String DetectorMessenger::GetCurrentValue(G4UIcommand * command)
     }
     else if( command == fSiPMDepthCmd ) {
         ans=fSiPMDepthCmd->ConvertToString(fDetector->GetSiPMDepth());
+    }
+    else if( command == fSiPMPDECmd ) {
+        ans=fSiPMPDECmd->ConvertToString(fDetector->GetSiPM_PDE());
     }
 
     return ans;

@@ -15,7 +15,7 @@ class G4UIcmdWithABool;
 class G4UIcmdWithAnInteger;
 class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithADouble;
-class G4UnitDefinition;
+class G4UIcmdWithoutParameter;
 
 class DetectorMessenger: public G4UImessenger
 {
@@ -31,11 +31,14 @@ private:
 
     G4UIdirectory*                  fDirectory;
     G4UIcmdWithAnInteger*           fVerboseCmd;
+    G4UIcmdWithAnInteger*           fSDVerboseCmd;
+    G4UIcmdWithoutParameter*        fValidateCmd;
     G4UIcmdWithAnInteger*           fNCrystalCmd;
     G4UIcmdWithADoubleAndUnit*      fCrystalSizeXYCmd;
     G4UIcmdWithADoubleAndUnit*      fCrystalDepthCmd;
     G4UIcmdWithADoubleAndUnit*      fSiPMSizeXYCmd;
     G4UIcmdWithADoubleAndUnit*      fSiPMDepthCmd;
+    G4UIcmdWithADouble*      fSiPMPDECmd;
 };
 
 

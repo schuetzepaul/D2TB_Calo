@@ -12,7 +12,7 @@ class PhotonDetSD : public G4VSensitiveDetector
 {
   public:
 
-    PhotonDetSD(G4String );
+    PhotonDetSD(G4String, G4int);
     virtual ~PhotonDetSD();
 
     virtual void Initialize(G4HCofThisEvent* );
@@ -28,6 +28,7 @@ class PhotonDetSD : public G4VSensitiveDetector
   private:
 
     PhotonDetHitsCollection* fPhotonDetHitCollection;
+    G4int fVerbose;
 };
 
 #endif

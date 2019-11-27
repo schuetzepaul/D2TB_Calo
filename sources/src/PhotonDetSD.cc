@@ -13,9 +13,10 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PhotonDetSD::PhotonDetSD(G4String name)
+PhotonDetSD::PhotonDetSD(G4String name, G4int verbose)
 : G4VSensitiveDetector(name),
-fPhotonDetHitCollection(0)
+fPhotonDetHitCollection(0),
+fVerbose(verbose)
 {
     collectionName.insert("PhotonDetHitCollection");
 }
@@ -82,8 +83,10 @@ G4bool PhotonDetSD::ProcessHits_constStep(const G4Step* aStep, G4TouchableHistor
 
 void PhotonDetSD::EndOfEvent(G4HCofThisEvent*)
 {
-    G4int nDetected = fPhotonDetHitCollection->entries();
-    G4cout << "<<< Number of photon detected " << nDetected << G4endl;
-    for (G4int i = 0; i < nDetected; i++) (*fPhotonDetHitCollection)[i]->Print();
-
+    if(fVerbose > 1)
+    {
+        G4int nDetected = fPhotonDetHitCollection->entries();
+        G4cout << "<<< Number of photon detected " << nDetected << G4endl;
+        for (G4int i = 0; i < nDetected; i++) (*fPhotonDetHitCollection)[i]->Print();
+    }
 }

@@ -2,6 +2,7 @@
 #include "ActionInitialization.hh"
 #include "PhysicsList.hh"
 #include "PersistencyManager.hh"
+#include "PersistencyRootManager.hh"
 
 #ifdef G4MULTITHREADED
 #include "G4MTRunManager.hh"
@@ -19,41 +20,42 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-namespace {
-    void PrintUsage() {
-        G4cerr << " Usage: " << G4endl;
-        G4cerr << " D2TB_Calo [-m macro] [-h help]" << G4endl;
-    }
+void PrintUsage() {
+    std::cout << "Usage: d2tb_calo [options]" << std::endl;
+    std::cout << "    -m      -- Use the macro specified after" << std::endl;
+    std::cout << "    -o      -- Set the output file" << std::endl;
+    std::cout << "    -U      -- Start an interactive run" << std::endl;
+    std::cout << "    -v      -- Validate the geometry" << std::endl;
+    std::cout << "    -h      -- This help message." << std::endl;
+
+    exit(1);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-int main(int argc,char** argv)
+int main(int argc, char** argv)
 {
     // Evaluate arguments
-    if ( argc > 5 ) {
+    if ( argc < 2 || argc > 9 ) {
         PrintUsage();
-        return 1;
     }
 
     G4String macro;
-    for ( G4int i = 1; i < argc; i = i+2 ) {
-        if      ( G4String(argv[i]) == "-m" ) macro = argv[i+1];
+    G4String outputFilename;
+    bool useUI = false;
+    bool validateGeo = false;
+
+    for ( G4int i = 1; i < argc; i++ ) {
+        if      ( G4String(argv[i]) == "-m" ) { macro = argv[i+1]; i++; }
+        else if ( G4String(argv[i]) == "-o" ) { outputFilename = argv[i+1]; i++; }
+        else if ( G4String(argv[i]) == "-U" ) useUI = true;
+        else if ( G4String(argv[i]) == "-v" ) validateGeo = true;
         else if ( G4String(argv[i]) == "-h" ) {
             PrintUsage();
-            return 1;
         }
         else {
             PrintUsage();
-            return 1;
         }
-    }
-
-    // Detect interactive mode (if no macro provided) and define UI session
-    G4UIExecutive* ui = nullptr;
-
-    if (macro.size() == 0) {
-        ui = new G4UIExecutive(argc, argv);
     }
 
     // Choose the Random engine
@@ -72,7 +74,7 @@ int main(int argc,char** argv)
 
     // Set mandatory initialization classes
     // Construction of the detector
-    auto detConstruction = new DetectorConstruction();
+    auto detConstruction = new DetectorConstruction(validateGeo);
     runManager->SetUserInitialization(detConstruction);
 
     // Choice of the physics List
@@ -83,23 +85,28 @@ int main(int argc,char** argv)
     auto actionInitialization = new ActionInitialization(detConstruction);
     runManager->SetUserInitialization(actionInitialization);
 
-    PersistencyManager* persistencyManager = NULL;
-    persistencyManager = new PersistencyManager();
+    PersistencyManager* persistencyManager = nullptr;
 
-    // Initialize visualization
-    auto visManager = new G4VisExecutive;
-    visManager->Initialize();
+    persistencyManager = new PersistencyRootManager();
+
+    if(!persistencyManager){
+        persistencyManager = new PersistencyManager();
+    }
 
     // Get the pointer to the User Interface manager
     auto UImanager = G4UImanager::GetUIpointer();
 
-    // Process macro or start UI session
-    if ( macro.size() ) {
-        // batch mode
-        G4String command = "/control/execute ";
-        UImanager->ApplyCommand(command+macro);
+    // Open the file if one was declared on the command line.
+    if (persistencyManager && ! outputFilename.empty()) {
+        UImanager->ApplyCommand("/d2tb/root/open "+outputFilename);
     }
-    else  {
+
+    G4VisManager* visManager = new G4VisExecutive;
+    visManager->Initialize();
+
+    if (useUI) {
+        G4UIExecutive* ui = new G4UIExecutive(argc, argv);
+
         // interactive mode : define UI session
         UImanager->ApplyCommand("/control/execute init_vis.mac");
         if (ui->IsGUI()) {
@@ -107,6 +114,11 @@ int main(int argc,char** argv)
         }
         ui->SessionStart();
         delete ui;
+    }
+    else{
+        if ( macro.size() ) {
+            UImanager->ApplyCommand("/control/execute " + macro);
+        }
     }
 
     // Job termination
@@ -117,6 +129,7 @@ int main(int argc,char** argv)
         persistencyManager->Close();
         delete persistencyManager;
     }
+
     delete visManager;
     delete runManager;
 

@@ -5,12 +5,14 @@
 #define SteppingAction_h 1
 
 #include "G4UserSteppingAction.hh"
+#include "G4OpBoundaryProcess.hh"
 
 #include "globals.hh"
 
 class DetectorConstruction;
-class G4OpBoundaryProcess;
+class EventAction;
 class G4Step;
+class SteppingActionMessenger;
 
 /// Stepping action class.
 ///
@@ -21,29 +23,28 @@ class G4Step;
 class SteppingAction : public G4UserSteppingAction
 {
 public:
-    SteppingAction(DetectorConstruction*);
+    SteppingAction(DetectorConstruction*, EventAction*);
     virtual ~SteppingAction();
 
     virtual void UserSteppingAction(const G4Step* theStep);
 
-    void SetBounceLimit(G4int i) { fBounceLimit = i; }
+    void SetBounceLimit(G4int);
 
 private:
-    
+
     inline void ResetCounters()
     {
         fCounterBounce = 0;
     }
 
-    DetectorConstruction* fDetector;
+    DetectorConstruction*       fDetector;
+    EventAction*                fEventAction;
+    G4OpBoundaryProcess*        fOpProcess;
+    SteppingActionMessenger*    fSteppingMessenger;
 
-    // Artificially kill the photon after it has bounced more than this number
     G4int fBounceLimit;
-
-    // total number of bounces that a photon been through
     G4int fCounterBounce;
 
-    G4OpBoundaryProcess* fOpProcess;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

@@ -35,9 +35,9 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-DetectorConstruction::DetectorConstruction()
+DetectorConstruction::DetectorConstruction(bool validateGeo)
 : G4VUserDetectorConstruction(),
-fCheckOverlaps(true),
+fCheckOverlaps(validateGeo),
 fWorldSizeXY(10*m),
 fWorldSizeZ(10*m),
 fCaloSizeXY(1*m),
@@ -48,8 +48,10 @@ fCrystalDepth(30*cm),
 fNCrystalPerRow(3),
 fSiPMSizeXY(1*mm),
 fSiPMDepth(0.1*mm),
+fSiPM_PDE(1.0),
 fDetectorMessenger(nullptr),
 fVerboseLevel(1),
+fSDVerboseLevel(0),
 fDefaultMaterial(nullptr),
 fWorldLogical(nullptr),
 fCrystalLogical(nullptr),
@@ -81,11 +83,11 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
         G4LogicalBorderSurface::CleanSurfaceTable();
     }
 
-    // Define materials
-    DefineMaterials();
-
     //Update Geometry parameters
     UpdateGeometryParameters();
+
+    // Define materials
+    DefineMaterials();
 
     // Define volumes
     return ConstructDetector();
@@ -138,30 +140,37 @@ void DetectorConstruction::DefineMaterials()
 
     density = 7.1*g/cm3;
     G4Material *LYSO = new G4Material(name="LYSO", density, nel=4);
-    LYSO->AddElement(elLu, fractionmass = 0.714467891);
-    LYSO->AddElement(elY, fractionmass = 0.04033805);
-    LYSO->AddElement(elSi, fractionmass = 0.063714272);
-    LYSO->AddElement(elO, fractionmass = 0.181479788);
+    LYSO->AddElement(elLu, fractionmass = 0.714468);
+    LYSO->AddElement(elY, fractionmass = 0.040338);
+    LYSO->AddElement(elSi, fractionmass = 0.063714);
+    LYSO->AddElement(elO, fractionmass = 0.18148);
 
     fDefaultMaterial = G4Material::GetMaterial("G4_AIR");
     fCrystalMaterial = G4Material::GetMaterial("LYSO");
     fSiPMMaterial = G4Material::GetMaterial("G4_Si");
 
-    const G4int nLYSO = 1;
-    G4double eLYSO[nLYSO] = { 2.8 *eV };
-    G4double rLYSO[nLYSO] = { 1.81 };
-    G4double aLYSO[nLYSO] = { 41.3 *cm };
-    G4double lLYSO[nLYSO] = { 1.0 };
-
     //Properties of LYSO
     G4MaterialPropertiesTable* propLYSO = new G4MaterialPropertiesTable();
-    propLYSO->AddConstProperty("SCINTILLATIONYIELD", 32./keV);
+    propLYSO->AddConstProperty("SCINTILLATIONYIELD", 26000./MeV);
     propLYSO->AddConstProperty("RESOLUTIONSCALE", 1.0);
-    propLYSO->AddConstProperty("FASTTIMECONSTANT", 0.09*ns);
-    propLYSO->AddConstProperty("SlOWTIMECONSTANT", 41*ns);
+    propLYSO->AddConstProperty("FASTTIMECONSTANT", 40*ns);
     propLYSO->AddConstProperty("YIELDRATIO", 1.0);
-    propLYSO->AddProperty("ABSLENGTH", eLYSO, aLYSO, nLYSO);
-    propLYSO->AddProperty("RINDEX", eLYSO, rLYSO, nLYSO);
+
+    const G4int nRINDEXLYSO = 7;
+    G4double lamdbaLYSO[nRINDEXLYSO] = { 405*nm, 420*nm, 436*nm, 461*nm, 486*nm, 516*nm, 546*nm };
+    G4double ABSLYSO[nRINDEXLYSO] = { 20*cm, 20*cm, 20*cm, 20*cm, 20*cm, 20*cm, 20*cm };
+    G4double RINDEXLYSO[nRINDEXLYSO] = { 1.833, 1.827, 1.822, 1.818, 1.813, 1.810, 1.806 };
+    G4double eRINDEXLYSO[nRINDEXLYSO];
+    for(int i = 0; i < nRINDEXLYSO; i++) {
+        eRINDEXLYSO[i] = CLHEP::hbarc * CLHEP::twopi / lamdbaLYSO[i];
+        // G4cout << "Wavelength : " << G4BestUnit(lamdbaLYSO[nRINDEXLYSO-i-1], "Length") << " to energy " << G4BestUnit(eRINDEXLYSO[i], "Energy") << G4endl;
+    }
+    propLYSO->AddProperty("RINDEX", eRINDEXLYSO, RINDEXLYSO, nRINDEXLYSO);
+    propLYSO->AddProperty("ABSLENGTH", eRINDEXLYSO, ABSLYSO, nRINDEXLYSO);
+
+    const G4int nLYSO = 1;
+    G4double eLYSO[nLYSO] = { 2.95167*eV };
+    G4double lLYSO[nLYSO] = { 1.0 };
     // Wavelength to relative light output //TODO check this
     propLYSO->AddProperty("FASTCOMPONENT", eLYSO, lLYSO, nLYSO);
 
@@ -191,13 +200,18 @@ void DetectorConstruction::DefineMaterials()
     }
 
     // Print materials
-    // G4cout << *(G4Material::GetMaterialTable()) << G4endl;
+    if(fVerboseLevel > 0)
+    G4cout << *(G4Material::GetMaterialTable()) << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 G4VPhysicalVolume* DetectorConstruction::ConstructDetector()
 {
+    if(fCheckOverlaps){
+        G4cout << "-- DetectorConstruction::ConstructDetector() : Flag to check overlaps is set --" << G4endl;
+    }
+
     // World Box
     auto worldBox = new G4Box("WorldBox", fWorldSizeXY/2, fWorldSizeXY/2, fWorldSizeZ/2);
     // World Logical Volume (associate it with the world box)
@@ -205,12 +219,14 @@ G4VPhysicalVolume* DetectorConstruction::ConstructDetector()
     // Placement of the World Logical Volume
     fWorldPhysical = new G4PVPlacement(0, G4ThreeVector(), fWorldLogical, "WorldBox", 0, false, 0, fCheckOverlaps);
 
+    //Build the crystals and SiPMs
     BuildCrystalandSiPM();
 
-    // Visualization attributes
+    //World is invisible
     fWorldLogical->SetVisAttributes (G4VisAttributes::GetInvisible());
 
     //Print Parameters
+    if(fVerboseLevel > 0)
     PrintParameters();
 
     // Always return the physical World
@@ -223,20 +239,18 @@ void DetectorConstruction::ConstructSDandField()
 {
     if (!fSD.Get()) {
         G4String SDName = "d2tb/PhotonDet";
-        PhotonDetSD* SD = new PhotonDetSD(SDName);
+        PhotonDetSD* SD = new PhotonDetSD(SDName, GetSDVerboseLevel());
         G4SDManager::GetSDMpointer()->AddNewDetector(SD);
         fSD.Put(SD);
+
+        G4cout << "DetectorConstruction::ConstructSDandField() : Constructed sensitive detector " << SDName << G4endl;
     }
     SetSensitiveDetector("PhotonDetLV", fSD.Get(), true);
 }
 
 void DetectorConstruction::BuildCrystalandSiPM()
 {
-    G4int nbins = 1;
-    G4double p_crystal[] = { 2.8 *eV };
-    G4double refl_crystal[] = { 1. };
-    G4double effi_crystal[] = { 0. };
-
+    const G4int nbins = 1;
     //Crystal
     auto Crystal = new G4Box("Crystal", fCrystalSizeXY/2, fCrystalSizeXY/2, fCrystalDepth/2);
     fCrystalLogical = new G4LogicalVolume(Crystal, fCrystalMaterial, "CrystalLV");
@@ -255,23 +269,23 @@ void DetectorConstruction::BuildCrystalandSiPM()
     //Photocathode inside the SiPM
     auto PhotonDet = new G4Box("PhotonDet", fSiPMSizeXY/2, fSiPMSizeXY/2, fSiPMDepth/2);
     auto logicPhotonDet = new G4LogicalVolume(PhotonDet, fSiPMMaterial, "PhotonDetLV");
-    auto physPhotonDet = new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
+    new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth/2.), logicPhotonDet, "PhotonDet", logicSiPM, false, 0, fCheckOverlaps);
 
     //----------------------------------------------------------------------
     // PhotonDet Surface Properties
     G4OpticalSurface* photonDetSurface = new G4OpticalSurface("PhotonDetSurface", glisur, ground, dielectric_metal, 1.0);
 
     G4MaterialPropertiesTable* photonDetSurfaceProperty = new G4MaterialPropertiesTable();
-    // G4int nbins = 1;
-    G4double p_mppc[] = { 2.8 *eV };
-    G4double refl_mppc[] = { 0 };
-    G4double effi_mppc[] = { 1 };
+    G4double p_mppc[nbins] = { 2.8 *eV };
+    G4double refl_mppc[nbins] = { 0 };
+    G4double effi_mppc[nbins] = { fSiPM_PDE };
     photonDetSurfaceProperty->AddProperty("REFLECTIVITY", p_mppc, refl_mppc, nbins);
     photonDetSurfaceProperty->AddProperty("EFFICIENCY", p_mppc, effi_mppc, nbins);
     photonDetSurface->SetMaterialPropertiesTable(photonDetSurfaceProperty);
 
     new G4LogicalSkinSurface("PhotonDetSurface", logicPhotonDet, photonDetSurface);
 
+    //Vis attributes for the active area of the SiPM
     auto SiPMVisAtt = new G4VisAttributes(G4Colour(1.0,0.647,0.0));
     SiPMVisAtt->SetVisibility(true);
     SiPMVisAtt->SetForceSolid(true);
@@ -283,8 +297,12 @@ void DetectorConstruction::BuildCrystalandSiPM()
 
     G4int fNSiPMPerRow = 5;
     G4int fNSiPMRow = 5;
-    G4VPhysicalVolume* physHole[fNSiPMRow][fNSiPMPerRow];
-    G4VPhysicalVolume* physSiPM[fNSiPMRow][fNSiPMPerRow];
+    std::vector< std::vector<G4VPhysicalVolume*> > physHole;
+    physHole.reserve(fNSiPMRow);
+    std::vector< std::vector<G4VPhysicalVolume*> > physSiPM;
+    physSiPM.reserve(fNSiPMRow);
+    std::vector<G4VPhysicalVolume*> vecphysHole;
+    std::vector<G4VPhysicalVolume*> vecphysSiPM;
 
     for(int irow = 0; irow < fNSiPMRow; irow++)
     {
@@ -292,6 +310,12 @@ void DetectorConstruction::BuildCrystalandSiPM()
         G4double fOffsetY = 0.;
 
         fOffsetY = -fCrystalSizeXY/2+spacing + irow*spacing;
+
+        vecphysHole.clear();
+        vecphysHole.reserve(fNSiPMPerRow);
+
+        vecphysSiPM.clear();
+        vecphysSiPM.reserve(fNSiPMPerRow);
 
         for(int iSiPM = 0; iSiPM < fNSiPMPerRow; iSiPM++)
         {
@@ -308,14 +332,22 @@ void DetectorConstruction::BuildCrystalandSiPM()
             fOffsetX = -fCrystalSizeXY/2+spacing + iSiPM*spacing;
 
             //Hole placement inside the crystal
-            physHole[irow][iSiPM] = new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2+fHoleDepth), logicHole, Holename, fCrystalLogical, false, irow+10*irow, fCheckOverlaps);
+            // physHole[irow][iSiPM] = new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2+fHoleDepth), logicHole, Holename, fCrystalLogical, false, irow+10*irow, fCheckOverlaps);
+
+            vecphysHole.push_back( new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2+fHoleDepth), logicHole, Holename, fCrystalLogical, false, irow+10*irow, fCheckOverlaps) );
 
             //SiPM placement inside the hole
-            physSiPM[irow][iSiPM] = new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth), logicSiPM, SiPMname, logicHole, false, irow+10*irow, fCheckOverlaps);
+            // physSiPM[irow][iSiPM] = new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth), logicSiPM, SiPMname, logicHole, false, irow+10*irow, fCheckOverlaps);
+            vecphysSiPM.push_back( new G4PVPlacement(0, G4ThreeVector(0., 0., -fSiPMDepth), logicSiPM, SiPMname, logicHole, false, irow+10*irow, fCheckOverlaps) );
         }
+
+        physHole.push_back( vecphysHole );
+        physSiPM.push_back( vecphysSiPM );
     }
 
-    G4VPhysicalVolume* physCrystal[fNCrystal];
+    std::vector<G4VPhysicalVolume*> physCrystal;
+    physCrystal.reserve(fNCrystal);
+
     //---------------------- Placement of the Crystals --------------------------------------------
     for(int iCrystal = 0; iCrystal < fNCrystal; iCrystal++){
         G4String name = "Crystal";
@@ -337,12 +369,17 @@ void DetectorConstruction::BuildCrystalandSiPM()
         }
 
         //Place Crystal
-        physCrystal[iCrystal] = new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2), fCrystalLogical, name, fWorldLogical, false, iCrystal, fCheckOverlaps);
+        // physCrystal[iCrystal] = new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2), fCrystalLogical, name, fWorldLogical, false, iCrystal, fCheckOverlaps);
+        physCrystal.push_back( new G4PVPlacement(0, G4ThreeVector(fOffsetX, fOffsetY, -fCrystalDepth/2), fCrystalLogical, name, fWorldLogical, false, iCrystal, fCheckOverlaps) );
     }
 
     //Border between crystals
     //Crystals are just polished
     G4OpticalSurface* CrystalSurface = new G4OpticalSurface("CrystalSurface", glisur, polished, dielectric_dielectric, 1.0);
+
+    G4double p_crystal[nbins] = { 2.8 *eV };
+    G4double refl_crystal[nbins] = { 1. };
+    G4double effi_crystal[nbins] = { 0. };
 
     G4MaterialPropertiesTable* crystalSurfaceProperty = new G4MaterialPropertiesTable();
     crystalSurfaceProperty->AddProperty("REFLECTIVITY", p_crystal, refl_crystal, nbins);
@@ -350,8 +387,8 @@ void DetectorConstruction::BuildCrystalandSiPM()
     CrystalSurface->SetMaterialPropertiesTable(crystalSurfaceProperty);
 
     for(int iCrystal = 0; iCrystal < fNCrystal-1; iCrystal++){
-        new G4LogicalBorderSurface("CrystalSurf", physCrystal[iCrystal], physCrystal[iCrystal+1], CrystalSurface);
-        new G4LogicalBorderSurface("CrystalSurf", physCrystal[iCrystal+1], physCrystal[iCrystal], CrystalSurface);
+        new G4LogicalBorderSurface("CrystalSurf", physCrystal.at(iCrystal), physCrystal.at(iCrystal+1), CrystalSurface);
+        new G4LogicalBorderSurface("CrystalSurf", physCrystal.at(iCrystal+1), physCrystal.at(iCrystal), CrystalSurface);
     }
 
     //Border between crystal and world (wrapped)
@@ -363,7 +400,7 @@ void DetectorConstruction::BuildCrystalandSiPM()
     CrystalWrapping->SetMaterialPropertiesTable(crystalWrappingProperty);
 
     for(int iCrystal = 0; iCrystal < fNCrystal; iCrystal++){
-        new G4LogicalBorderSurface("CrystalWrapping", physCrystal[iCrystal], fWorldPhysical, CrystalWrapping);
+        new G4LogicalBorderSurface("CrystalWrapping", physCrystal.at(iCrystal), fWorldPhysical, CrystalWrapping);
     }
 }
 
@@ -378,6 +415,7 @@ void DetectorConstruction::PrintParameters()
     << " CaloBox XY size " << G4BestUnit(fCaloSizeXY, "Length") << "depth " << G4BestUnit(fCaloDepth, "Length") << G4endl
     << " SiPM XY size " << G4BestUnit(fSiPMSizeXY, "Length") << "depth " << G4BestUnit(fSiPMDepth, "Length") << G4endl
     << " NCrystal: " << fNCrystal << " (" << fNCrystalPerRow << " per row) - Crystal XY size " << G4BestUnit(fCrystalSizeXY, "Length") << " depth " << G4BestUnit(fCrystalDepth, "Length") << G4endl
+    << " PDE of the SiPM set to " << fSiPM_PDE*100 << " % (not dependent of the wavelength)" << G4endl
     << "------------------------------------------------------------" << G4endl;
 }
 
@@ -385,6 +423,16 @@ void DetectorConstruction::PrintParameters()
 
 void DetectorConstruction::SetVerboseLevel(G4int val) {
     fVerboseLevel = val;
+    G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+void DetectorConstruction::SetSDVerboseLevel(G4int val) {
+    fSDVerboseLevel = val;
+    G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+void DetectorConstruction::ValidateGeometry() {
+    fCheckOverlaps = true;
     G4RunManager::GetRunManager()->ReinitializeGeometry();
 }
 
@@ -410,6 +458,11 @@ void DetectorConstruction::SetSiPMSizeXY(G4double val) {
 
 void DetectorConstruction::SetSiPMDepth(G4double val) {
     fSiPMDepth = val;
+    G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+void DetectorConstruction::SetSiPM_PDE(G4double val) {
+    fSiPM_PDE = val;
     G4RunManager::GetRunManager()->ReinitializeGeometry();
 }
 

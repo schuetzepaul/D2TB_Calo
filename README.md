@@ -13,5 +13,5 @@ cd ..
 
 To execute the program just do
 ```
-bin/D2TB_Calo -m [macro.mac] -p [physics list]
+bin/D2TB_Calo -m [macro.mac]
 ```

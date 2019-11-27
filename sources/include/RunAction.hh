@@ -9,6 +9,7 @@
 
 class G4Timer;
 class G4Run;
+class D2TBRun;
 
 /// Run action class
 ///
@@ -22,10 +23,12 @@ class RunAction : public G4UserRunAction
     RunAction();
     virtual ~RunAction();
 
+    virtual G4Run* GenerateRun();
     virtual void BeginOfRunAction(const G4Run*);
     virtual void   EndOfRunAction(const G4Run*);
 
 private:
+    D2TBRun*  fRun;
     G4Timer* fTimer;
 };
 

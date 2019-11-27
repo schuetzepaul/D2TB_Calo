@@ -22,9 +22,20 @@ public:
     virtual void  BeginOfEventAction(const G4Event*);
     virtual void    EndOfEventAction(const G4Event*);
 
+    void IncPhotonCount_Scint() { fPhotonCount_Scint++; }
+    void IncAbsorption() { fAbsorptionCount++; }
+    void IncBoundaryAbsorption() { fBoundaryAbsorptionCount++; }
+
+    G4int GetPhotonCount_Scint() const { return fPhotonCount_Scint; }
+    G4int GetAbsorptionCount() const { return fAbsorptionCount; }
+    G4int GetBoundaryAbsorptionCount() const { return fBoundaryAbsorptionCount; }
+
 private:
     //members
     G4int fVerboseLevel;
+    G4int fPhotonCount_Scint;
+    G4int fAbsorptionCount;
+    G4int fBoundaryAbsorptionCount;
 
 };
 

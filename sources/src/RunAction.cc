@@ -3,6 +3,7 @@
 
 #include "G4Timer.hh"
 
+#include "D2TBRun.hh"
 #include "RunAction.hh"
 
 #include "G4Run.hh"
@@ -13,7 +14,8 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 RunAction::RunAction()
-: fTimer(0)
+: fRun(nullptr),
+fTimer(0)
 {
     fTimer = new G4Timer;
 }
@@ -23,6 +25,13 @@ RunAction::RunAction()
 RunAction::~RunAction()
 {
     delete fTimer;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+G4Run* RunAction::GenerateRun()
+{
+  fRun = new D2TBRun();
+  return fRun;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

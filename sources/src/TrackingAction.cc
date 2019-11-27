@@ -30,7 +30,7 @@ void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
     G4String PVName = aTrack->GetVolume()->GetName();
 
     if (PVName == "Crystal")
-    trackInformation->AddStatusFlag(InsideOfCrystal);
+    trackInformation->AddTrackStatusFlag(insideOfCrystal);
 
     fpTrackingManager->SetUserTrackInformation(trackInformation);
 }

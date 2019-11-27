@@ -11,12 +11,14 @@
 #include "G4UserStackingAction.hh"
 #include "globals.hh"
 
+class EventAction;
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 class StackingAction : public G4UserStackingAction
 {
 public:
-    StackingAction();
+    StackingAction(EventAction*);
     ~StackingAction();
 
     /// Check if a new track should be tracked.
@@ -25,6 +27,7 @@ public:
     virtual void PrepareNewEvent();
 
 private:
+    EventAction* fEventAction;
     G4int fScintillationCounter;
 };
 

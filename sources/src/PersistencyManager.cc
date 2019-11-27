@@ -2,6 +2,7 @@
 #include "PersistencyMessenger.hh"
 #include "PhotonDetHit.hh"
 #include "RunAction.hh"
+#include "D2TBRun.hh"
 
 #include <G4ios.hh>
 #include <G4RunManager.hh>
@@ -62,11 +63,12 @@ G4bool PersistencyManager::Store(const G4VPhysicalVolume* aWorld) {
 
 void PersistencyManager::UpdateSummaries(const G4Event* event) {
 
-    const G4Run* runInfo = G4RunManager::GetRunManager()->GetCurrentRun();
+    D2TBRun* runInfo = static_cast<D2TBRun*>(G4RunManager::GetRunManager()->GetNonConstCurrentRun());
 
     fEventSummary.RunId = runInfo->GetRunID();
+    fEventSummary.Nscint = runInfo->GetPhotonCount_Scint();
     fEventSummary.EventId = event->GetEventID();
-    G4cout << "Event Summary for run " << fEventSummary.RunId << " event " << fEventSummary.EventId << G4endl;
+    G4cout << "PersistencyManager::UpdateSummaries() : Event Summary for run " << fEventSummary.RunId << " event " << fEventSummary.EventId << G4endl;
 
     SummarizeHitDetectors(fEventSummary.Detectors, event);
 }
@@ -103,6 +105,8 @@ void PersistencyManager::SummarizeHits(TG4PhotonDetHitContainer& dest, G4VHitsCo
     dest.clear();
     PhotonDetHit* g4Hit = dynamic_cast<PhotonDetHit*>(g4Hits->GetHit(0));
     if (!g4Hit) return;
+
+    G4cout << "PersistencyManager::SummarizeHits() : Number of photons hitting the SiPMs " << g4Hits->GetSize() << G4endl;
 
     for (std::size_t h = 0; h < g4Hits->GetSize(); ++h)
     {

@@ -284,7 +284,7 @@ void PhysicsList::AddLimiters()
         if (!pmanager) {
             std::ostringstream o;
             o << "Particle " << particleName << "without a Process Manager";
-            G4Exception("WLSExtraPhysics::ConstructProcess()","",
+            G4Exception("PhysicsList::AddLimiters()","",
             FatalException,o.str().c_str());
         }
 

@@ -21,53 +21,65 @@ class PhotonDetSD;
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
 public:
-    DetectorConstruction();
+    DetectorConstruction(bool);
     virtual ~DetectorConstruction();
 
     virtual G4VPhysicalVolume* Construct();
     virtual void ConstructSDandField();
 
     void SetVerboseLevel(G4int);
+    void SetSDVerboseLevel(G4int);
+    void ValidateGeometry();
     void SetNCrystal(G4int);
     void SetCrystalSizeXY(G4double);
     void SetCrystalDepth(G4double);
     void SetSiPMSizeXY(G4double);
     void SetSiPMDepth(G4double);
+    void SetSiPM_PDE(G4double);
 
     G4int GetVerboseLevel() const { return fVerboseLevel; }
+    G4int GetSDVerboseLevel() const { return fSDVerboseLevel; }
     G4int GetNCrystal() const { return fNCrystal; }
     G4double GetCrystalSizeXY() const { return fCrystalSizeXY; }
     G4double GetCrystalDepth() const { return fCrystalDepth; }
     G4double GetSiPMSizeXY() const { return fSiPMSizeXY; }
     G4double GetSiPMDepth() const { return fSiPMDepth; }
+    G4double GetSiPM_PDE() const { return fSiPM_PDE; }
     G4double GetCrystalEnd();
 
 private:
     // methods
-    void DefineMaterials();
     void UpdateGeometryParameters();
-    void PrintParameters();
+    void DefineMaterials();
     G4VPhysicalVolume* ConstructDetector();
     void BuildCrystalandSiPM();
+
+    void PrintParameters();
 
     //data members
     G4bool  fCheckOverlaps;                 //Option to activate checking of volumes overlaps
     G4double fWorldSizeXY;                  //Size of the world in XZ
     G4double fWorldSizeZ;                   //Size of the world in XZ
+
     //CaloBox
     G4double fCaloSizeXY;                   //Size of the full calorimeter in XZ (fCrystalSizeXY*fNCrystalPerRow)
     G4double fCaloDepth;                    //Size of the full calorimeter in Z (fCrystalDepth+fSiPMDepth)
+
     //Crystal
     G4int fNCrystal;                        //Number of crystals
     G4double fCrystalSizeXY;              //Size of the crystal in XZ
     G4double fCrystalDepth;                 //Size of the crystal in Z
     G4int fNCrystalPerRow;                  //Number of crystals per row
+
     //SiPM
-    G4double fSiPMSizeXY;                    //Size of the SiPM in XZ
-    G4double fSiPMDepth;                   //Size of the SiPM in Z
+    G4double fSiPMSizeXY;                   //Size of the SiPM in XZ
+    G4double fSiPMDepth;                    //Size of the SiPM in Z
+    G4double fSiPM_PDE;                     //PDE of the SiPM
 
     DetectorMessenger* fDetectorMessenger; //To change some geometry parameters
     G4int   fVerboseLevel;                 //verbose level
+    G4int   fSDVerboseLevel;
+
     //Materials
     G4Material* fDefaultMaterial;          //Default material (G4_AIR)
     G4Material* fCrystalMaterial;          //Crystal material (LYSO)
@@ -75,10 +87,8 @@ private:
 
     G4LogicalVolume*   fWorldLogical;      //World logical volume
     G4LogicalVolume*   fCrystalLogical;    //Crystal logical volume
-
     G4VPhysicalVolume* fWorldPhysical;     //World physical volume (returns from ConstructDetector())
     G4VPhysicalVolume* fCrystalPhysical;   //Crystal physical volume
-
     G4Cache<PhotonDetSD*> fSD;             //Sensitive G4 detector handle
 };
 

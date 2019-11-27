@@ -16,6 +16,9 @@ public:
     /// The event number
     int EventId;
 
+    ///The number of scintillation photon in the event
+    int Nscint;
+    
     /// A map of sensitive detector names and vectors of photon detector hits.  The
     /// map is keyed using the sensitive volume name.
     TG4HitDetectors Detectors;
