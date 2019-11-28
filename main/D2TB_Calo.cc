@@ -13,10 +13,9 @@
 #include "G4UImanager.hh"
 #include "G4UIcommand.hh"
 
-#include "Randomize.hh"
-
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
+#include "G4UIterminal.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -26,6 +25,7 @@ void PrintUsage() {
     std::cout << "    -o      -- Set the output file" << std::endl;
     std::cout << "    -U      -- Start an interactive run" << std::endl;
     std::cout << "    -v      -- Validate the geometry" << std::endl;
+    std::cout << "    -e <n>  -- Number of events to run" << std::endl;
     std::cout << "    -h      -- This help message." << std::endl;
 
     exit(1);
@@ -36,12 +36,13 @@ void PrintUsage() {
 int main(int argc, char** argv)
 {
     // Evaluate arguments
-    if ( argc < 2 || argc > 9 ) {
+    if ( argc < 2 || argc > 11 ) {
         PrintUsage();
     }
 
     G4String macro;
     G4String outputFilename;
+    G4String nEvts;
     bool useUI = false;
     bool validateGeo = false;
 
@@ -50,6 +51,7 @@ int main(int argc, char** argv)
         else if ( G4String(argv[i]) == "-o" ) { outputFilename = argv[i+1]; i++; }
         else if ( G4String(argv[i]) == "-U" ) useUI = true;
         else if ( G4String(argv[i]) == "-v" ) validateGeo = true;
+        else if ( G4String(argv[i]) == "-e" ) { nEvts = argv[i+1]; i++; }
         else if ( G4String(argv[i]) == "-h" ) {
             PrintUsage();
         }
@@ -57,6 +59,9 @@ int main(int argc, char** argv)
             PrintUsage();
         }
     }
+
+    G4UIsession *session = nullptr;
+    G4UIExecutive* ui = nullptr;
 
     // Choose the Random engine
     G4Random::setTheEngine(new CLHEP::RanecuEngine);
@@ -105,7 +110,7 @@ int main(int argc, char** argv)
     visManager->Initialize();
 
     if (useUI) {
-        G4UIExecutive* ui = new G4UIExecutive(argc, argv);
+        ui = new G4UIExecutive(argc, argv);
 
         // interactive mode : define UI session
         UImanager->ApplyCommand("/control/execute init_vis.mac");
@@ -118,6 +123,13 @@ int main(int argc, char** argv)
     else{
         if ( macro.size() ) {
             UImanager->ApplyCommand("/control/execute " + macro);
+            if (nEvts.size()) {
+                UImanager->ApplyCommand("/run/beamOn " + nEvts);
+            } else {
+                //keep G4 idle
+                session = new G4UIterminal();
+                session->SessionStart();
+            }
         }
     }
 
@@ -129,6 +141,8 @@ int main(int argc, char** argv)
         persistencyManager->Close();
         delete persistencyManager;
     }
+
+    if(session) delete session;
 
     delete visManager;
     delete runManager;
