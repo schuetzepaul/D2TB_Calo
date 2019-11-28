@@ -56,8 +56,7 @@ G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track* aTrac
 
 void StackingAction::NewStage()
 {
-    G4cout << "StackingAction::NewStage() : Number of Scintillation photons produced in this event : "
-    << fScintillationCounter << G4endl;
+    G4cout << "StackingAction::NewStage() : Number of Scintillation photons produced in this event : " << fScintillationCounter << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

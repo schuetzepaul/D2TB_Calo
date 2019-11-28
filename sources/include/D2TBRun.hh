@@ -10,6 +10,10 @@ public:
     D2TBRun();
     ~D2TBRun();
 
+    void IncHitCount(G4int count) {
+        fHitCount  += count;
+    }
+
     void IncPhotonCount_Scint(G4int count) {
         fPhotonCount_Scint  += count;
     }
@@ -26,9 +30,13 @@ public:
 
     void EndOfRun();
 
+    G4int GetHitCount() { return fHitCount; }
     G4int GetPhotonCount_Scint() { return fPhotonCount_Scint; }
+    G4int GetAbsorption() { return fAbsorptionCount; }
+    G4int GetBoundaryAbsorption() { return fBoundaryAbsorptionCount; }
 
 private:
+    G4int fHitCount;
     G4int fPhotonCount_Scint;
     G4int fAbsorptionCount;
     G4int fBoundaryAbsorptionCount;

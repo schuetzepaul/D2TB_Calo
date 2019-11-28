@@ -21,7 +21,7 @@ class PhotonDetHit : public G4VHit
 public:
 
     PhotonDetHit();
-    PhotonDetHit(G4ThreeVector pExit, G4ThreeVector pArrive, G4ThreeVector pArriveLocal, G4double pTime, G4LogicalVolume* pLogV, G4int pCopyNo);
+    PhotonDetHit(G4ThreeVector pExit, G4ThreeVector pArrive, G4ThreeVector pArriveLocal, G4double pTime, G4LogicalVolume* pLogV, G4int pCrystalNo, G4int pSiPMNo);
     virtual ~PhotonDetHit();
 
     PhotonDetHit(const PhotonDetHit &right);
@@ -51,8 +51,11 @@ public:
     inline void SetLogicalVolume(G4LogicalVolume* val) { fLogicalVolume = val; }
     inline const G4LogicalVolume* GetLogicalVolume() const { return fLogicalVolume; }
 
-    inline void SetCopyNo(G4int n) { fCopyNo = n; }
-    inline G4int GetCopyNo() { return fCopyNo; }
+    inline void SetCrystalNo(G4int n) { fCrystalNo = n; }
+    inline G4int GetCrystalNo() { return fCrystalNo; }
+
+    inline void SetSiPMNo(G4int n) { fSiPMNo = n; }
+    inline G4int GetSiPMNo() { return fSiPMNo; }
 
     virtual void Print();
 
@@ -68,8 +71,10 @@ private:
     G4ThreeVector fPosExit;
     // Logical Volume of the Hit
     const G4LogicalVolume* fLogicalVolume;
-    //Copy Number of the volume
-    G4int fCopyNo;
+    //Number of the crystal volume
+    G4int fCrystalNo;
+    //Number of the SiPM volume
+    G4int fSiPMNo;
 };
 
 //--------------------------------------------------

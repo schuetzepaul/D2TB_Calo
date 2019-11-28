@@ -39,7 +39,17 @@ void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
 
 void TrackingAction::PostUserTrackingAction(const G4Track* aTrack)
 {
+    Trajectory* trajectory = (Trajectory*)fpTrackingManager->GimmeTrajectory();
+    UserTrackInformation* trackInformation = (UserTrackInformation*)aTrack->GetUserInformation();
 
+    //Lets choose to draw only the photons that hit the sipm
+    if(aTrack->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition()) {
+        if(trackInformation->GetTrackStatus()&hitSiPM) {
+            trajectory->SetDrawTrajectory(true);
+        }
+    }
+    else //draw all other trajectories
+    trajectory->SetDrawTrajectory(true);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

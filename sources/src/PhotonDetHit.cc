@@ -22,19 +22,21 @@ PhotonDetHit::PhotonDetHit()
     fPosArriveLocal = G4ThreeVector(0., 0., 0.);
     fPosExit     = G4ThreeVector(0., 0., 0.);
     fLogicalVolume = nullptr;
-    fCopyNo = 0;
+    fCrystalNo = 0;
+    fSiPMNo = 0;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PhotonDetHit::PhotonDetHit(G4ThreeVector pExit, G4ThreeVector pArrive, G4ThreeVector pArriveLocal, G4double pTime, G4LogicalVolume* pLogV, G4int pCopyNo)
+PhotonDetHit::PhotonDetHit(G4ThreeVector pExit, G4ThreeVector pArrive, G4ThreeVector pArriveLocal, G4double pTime, G4LogicalVolume* pLogV, G4int pCrystalNo, G4int pSiPMNo)
 {
     fPosExit     = pExit;
     fPosArrive   = pArrive;
     fPosArriveLocal = pArriveLocal;
     fArrivalTime = pTime;
     fLogicalVolume = pLogV;
-    fCopyNo = pCopyNo;
+    fCrystalNo = pCrystalNo;
+    fSiPMNo = pSiPMNo;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -58,7 +60,8 @@ const PhotonDetHit& PhotonDetHit::operator=(const PhotonDetHit &right)
     fPosArriveLocal = right.fPosArriveLocal;
     fArrivalTime = right.fArrivalTime;
     fLogicalVolume = right.fLogicalVolume;
-    fCopyNo = right.fCopyNo;
+    fCrystalNo = right.fCrystalNo;
+    fSiPMNo = right.fSiPMNo;
 
     return *this;
 }
@@ -67,7 +70,7 @@ const PhotonDetHit& PhotonDetHit::operator=(const PhotonDetHit &right)
 
 G4bool PhotonDetHit::operator==(const PhotonDetHit& right) const
 {
-    return (fPosExit == right.fPosExit && fPosArrive == right.fPosArrive && fPosArriveLocal == right.fPosArriveLocal && fArrivalTime == right.fArrivalTime && fLogicalVolume == right.fLogicalVolume && fCopyNo == right.fCopyNo);
+    return (fCrystalNo == right.fCrystalNo && fSiPMNo == right.fSiPMNo);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -79,7 +82,7 @@ void PhotonDetHit::Draw()
 
     G4Point3D p3D = G4Point3D(fPosArrive);
     G4Circle chit(p3D);
-    chit.SetScreenDiameter(3.0);
+    chit.SetScreenDiameter(4.0);
     chit.SetFillStyle(G4Circle::filled);
     G4Colour colour(1.,0.,0.);
     G4VisAttributes attribs(colour);
@@ -108,7 +111,10 @@ const std::map<G4String,G4AttDef>* PhotonDetHit::GetAttDefs() const
         (*store)["Time"] = G4AttDef("Time", "Time", "Physics","G4BestUnit",
         "G4double");
 
-        (*store)["CopyNo"] = G4AttDef("CopyNo", "Copy Number", "Physics","",
+        (*store)["CrystalNo"] = G4AttDef("CrystalNo", "Crystal Number", "Physics","",
+        "G4int");
+
+        (*store)["SiPMNo"] = G4AttDef("SiPMNo", "SiPM Number", "Physics","",
         "G4int");
 
         (*store)["LVol"] = G4AttDef("LVol","Logical Volume","Physics","","G4String");
@@ -132,7 +138,9 @@ std::vector<G4AttValue>* PhotonDetHit::CreateAttValues() const
 
     values->push_back(G4AttValue("Time",G4BestUnit(fArrivalTime, "Time"),""));
 
-    values->push_back(G4AttValue("CopyNo", fCopyNo,""));
+    values->push_back(G4AttValue("CrystalNo", fCrystalNo,""));
+
+    values->push_back(G4AttValue("SiPMNo", fSiPMNo,""));
 
     if (fLogicalVolume)
     values->push_back(G4AttValue("LVol",fLogicalVolume->GetName(),""));
@@ -150,5 +158,5 @@ void PhotonDetHit::Print()
     G4cout << "Arrived Position on the SiPM (global): " << G4BestUnit(fPosArrive, "Length") << G4endl;
     G4cout << "Arrived Position on the SiPM (local): " << G4BestUnit(fPosArriveLocal, "Length") << G4endl;
     G4cout << "Arrival Time: " << G4BestUnit(fArrivalTime, "Time") << G4endl;
-    G4cout << "Crystal Copy No: " << fCopyNo << G4endl;
+    G4cout << "Crystal Number: " << fCrystalNo << " -- SiPM Number: " << fSiPMNo << G4endl;
 }

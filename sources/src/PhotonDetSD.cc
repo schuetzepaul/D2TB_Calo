@@ -49,7 +49,7 @@ G4bool PhotonDetSD::ProcessHits(G4Step* , G4TouchableHistory* )
 //is generated manually when the photon hits the detector
 G4bool PhotonDetSD::ProcessHits_constStep(const G4Step* aStep, G4TouchableHistory* )
 {
-    if (aStep == NULL) return false;
+    if (aStep == nullptr) return false;
     G4Track* theTrack = aStep->GetTrack();
 
     // Need to know if this is an optical photon
@@ -71,10 +71,13 @@ G4bool PhotonDetSD::ProcessHits_constStep(const G4Step* aStep, G4TouchableHistor
     G4ThreeVector photonArriveLocal = theTouchable->GetHistory()->GetTopTransform().TransformPoint(photonArrive);
 
     //Get the copy number of the volume (starts at 0) (depth = 3 / 1 = SiPM / 2 = Hole / 3 = Crystal)
-    G4int copyNo = theTouchable->GetCopyNumber(3)+1;
+    G4int crystalNo = theTouchable->GetCopyNumber(3)+1;
+    //Get the copy number of the volume (starts at 0) (depth = 3 / 1 = SiPM / 2 = Hole / 3 = Crystal)
+    G4int SiPMNo = theTouchable->GetCopyNumber(2)+1;
 
     // Creating the hit and add it to the collection
-    fPhotonDetHitCollection->insert(new PhotonDetHit(photonExit, photonArrive, photonArriveLocal, arrivalTime, physical->GetLogicalVolume(), copyNo));
+    PhotonDetHit* hit = new PhotonDetHit(photonExit, photonArrive, photonArriveLocal, arrivalTime, physical->GetLogicalVolume(), crystalNo, SiPMNo);
+    fPhotonDetHitCollection->insert(hit);
 
     return true;
 }

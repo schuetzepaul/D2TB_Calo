@@ -7,7 +7,7 @@
 
 enum TrackStatus {
     active=1, hitSiPM=2, absorbed=4, boundaryAbsorbed=8,
-    murderee=16, inactive=14, insideOfCrystal=18
+    murderee=16, inactive=14, insideOfCrystal=32
 };
 
 /*TrackStatus:
@@ -33,8 +33,7 @@ public:
     const G4ThreeVector& GetExitPosition() const { return fExitPosition; }
     void SetExitPosition (const G4ThreeVector& pos) { fExitPosition = pos; }
 
-    //Does a smart add of track status flags (disabling old flags that conflict)
-    //If s conflicts with itself it will not be detected
+    //Set the Status Flag
     void AddTrackStatusFlag(TrackStatus s);
 
     //Returns the Track status

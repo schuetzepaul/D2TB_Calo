@@ -66,7 +66,7 @@ void PersistencyManager::UpdateSummaries(const G4Event* event) {
     D2TBRun* runInfo = static_cast<D2TBRun*>(G4RunManager::GetRunManager()->GetNonConstCurrentRun());
 
     fEventSummary.RunId = runInfo->GetRunID();
-    fEventSummary.Nscint = runInfo->GetPhotonCount_Scint();
+    fEventSummary.NScint = runInfo->GetPhotonCount_Scint();
     fEventSummary.EventId = event->GetEventID();
     G4cout << "PersistencyManager::UpdateSummaries() : Event Summary for run " << fEventSummary.RunId << " event " << fEventSummary.EventId << G4endl;
 
@@ -114,7 +114,8 @@ void PersistencyManager::SummarizeHits(TG4PhotonDetHitContainer& dest, G4VHitsCo
         TG4PhotonDetHit hit;
 
         hit.fArrivalTime = g4Hit->GetArrivalTime();
-        hit.fCopyNo = g4Hit->GetCopyNo();
+        hit.fCrystalNo = g4Hit->GetCrystalNo();
+        hit.fSiPMNo = g4Hit->GetSiPMNo();
 
         hit.fPosExit.SetXYZ(g4Hit->GetExitPos().x(), g4Hit->GetExitPos().y(), g4Hit->GetExitPos().z());
         hit.fPosArrive.SetXYZ(g4Hit->GetArrivalPos().x(), g4Hit->GetArrivalPos().y(), g4Hit->GetArrivalPos().z());

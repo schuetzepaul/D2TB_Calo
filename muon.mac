@@ -32,7 +32,7 @@
 /d2tb/phys/StepMaxSize 10 um
 
 # Set the maximum number of reflections per optical photon
-/d2tb/step/setBounceLimit 2000
+/d2tb/step/setBounceLimit 5000
 
 /gun/particle mu-
 /gun/energy 1 GeV

@@ -58,6 +58,8 @@ void RunAction::BeginOfRunAction(const G4Run* aRun)
 
 void RunAction::EndOfRunAction(const G4Run* aRun)
 {
+    if (isMaster) fRun->EndOfRun();
+    
     fTimer->Stop();
     G4cout << "Number of event = " << aRun->GetNumberOfEvent() << " " << *fTimer << G4endl;
 }

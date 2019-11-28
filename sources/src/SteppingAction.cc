@@ -106,18 +106,14 @@ void SteppingAction::UserSteppingAction(const G4Step *theStep) {
         case Detection:
             {
                 if ( thePostPVname == "PhotonDet" ) {
-
                     G4SDManager* SDman = G4SDManager::GetSDMpointer();
                     G4String SDname="d2tb/PhotonDet";
                     PhotonDetSD* mppcSD = (PhotonDetSD*)SDman->FindSensitiveDetector(SDname);
-
                     if (mppcSD) mppcSD->ProcessHits_constStep(theStep, NULL);
                     trackInformation->AddTrackStatusFlag(hitSiPM);
                 }
                 // Stop Tracking when it hits the detector's surface
                 ResetCounters();
-                theTrack->SetTrackStatus(fStopAndKill);
-
                 break;
             }
             //Same Material case

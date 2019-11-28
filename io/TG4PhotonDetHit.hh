@@ -17,7 +17,7 @@ class TG4PhotonDetHit : public TObject {
     friend class PersistencyManager;
 public:
     TG4PhotonDetHit()
-    : fArrivalTime(0), fCopyNo(0),
+    : fArrivalTime(0), fCrystalNo(0), fSiPMNo(0),
     fPosExit(0, 0, 0), fPosArrive(0, 0, 0), fPosArriveLocal(0, 0, 0) {}
 
     virtual ~TG4PhotonDetHit();
@@ -25,8 +25,11 @@ public:
     /// Arrival time of the photon on the SiPM
     float GetArrivalTime() const {return fArrivalTime;}
 
-    /// TThe copy number of the crystal volume
-    int GetCopyNumber() const {return fCopyNo;}
+    /// The number of the crystal volume
+    int GetCrystalNumber() const {return fCrystalNo;}
+
+    /// The number of the SiPM volume inside the crystal
+    int GetSiPMNumber() const {return fSiPMNo;}
 
     /// Exit position of the photon in case it got out of the detector
     const TVector3& GetExitPosition() const {return fPosExit;}
@@ -40,7 +43,8 @@ public:
 private:
 
     Float_t fArrivalTime;
-    Int_t fCopyNo;
+    Int_t fCrystalNo;
+    Int_t fSiPMNo;
     TVector3 fPosExit;
     TVector3 fPosArrive;
     TVector3 fPosArriveLocal;

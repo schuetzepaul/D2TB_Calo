@@ -31,5 +31,8 @@
 # Set the max step size for the physics processes
 /d2tb/phys/StepMaxSize 10 um
 
+# Set the maximum number of reflections per optical photon
+/d2tb/step/setBounceLimit 5000
+
 # Visualization setting
 /control/execute vis.mac
